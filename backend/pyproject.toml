@@ -1,0 +1,44 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+"django",
+"django-extensions",
+"dotenv",
+"watchdog==2.2",
+"djangorestframework",
+"djangorestframework-simplejwt",
+"pillow",
+"ultralytics",
+"moviepy",
+"opencv-python",
+"transformers",
+"Werkzeug",
+"pyOpenSSL",
+"django-cors-headers",
+"tkvideo",
+"coverage",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["api", "filestoragebackend"]
+omit = [
+  "*/migrations/*",
+  "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_lines = [
+  "pragma: no cover",
+  "if __name__ == .__main__.:",
+  "raise NotImplementedError",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
