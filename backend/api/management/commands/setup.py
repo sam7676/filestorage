@@ -22,6 +22,10 @@ class Command(BaseCommand):
 
         manage_main()
 
+        sys.argv = ["manage.py", "makemigrations"]
+
+        manage_main()
+
         username = input("Enter username: ")
         password = input("Enter password: ")
         password = hash_password(password.encode("utf-8"))
