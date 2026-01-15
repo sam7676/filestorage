@@ -58,7 +58,7 @@ def clean_corners(image, corners):  # (x1, x2, y1, y2)
     x1, x2, y1, y2 = corners
 
     x1, x2 = sorted([x1, x2])
-    y1, y2 = sorted([x1, x2])
+    y1, y2 = sorted([y1, y2])
 
     # Rounding the corners
     x1, x2, y1, y2 = map(int, list((x1 - 5, x2 + 5, y1 - 5, y2 + 5)))

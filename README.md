@@ -24,6 +24,10 @@ Testing
 `cd backend`
 `uv run -m coverage run manage.py test api`
 
+Frontend test coverage
+`cd frontend`
+`npm run test:coverage`
+
 Desktop GUI
 `cd backend`
 `uv run manage.py tkservice`

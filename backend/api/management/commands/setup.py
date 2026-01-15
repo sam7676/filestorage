@@ -18,6 +18,10 @@ def hash_password(password: bytes) -> str:
 
 class Command(BaseCommand):
     def handle(self, **options):
+        sys.argv = ["manage.py", "makemigrations"]
+
+        manage_main()
+
         sys.argv = ["manage.py", "migrate"]
 
         manage_main()

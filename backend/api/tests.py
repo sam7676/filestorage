@@ -25,6 +25,7 @@ class ItemModelTests(TestCase):
         api_models.MEDIA_PATH = self.temp_dir.name
         self.addCleanup(setattr, api_models, "MEDIA_PATH", self.old_media_path)
 
+    # When we create an item, check it goes to uncropped
     def test_item_path_and_parent(self):
         item = api_models.Item.objects.create(
             state=int(api_models.FileState.NeedsCrop),
@@ -38,6 +39,7 @@ class ItemModelTests(TestCase):
         self.assertEqual(item.getpath(), expected_path)
         self.assertEqual(item.getparent(), str(Path(expected_path).parent))
 
+    # Checking get file properties works as expected
     def test_get_file_properties_parses_label_and_type(self):
         path = f"{api_models.MEDIA_PATH}/items/cat/0000000123.jpg"
         properties = api_models.get_file_properties(path)
@@ -47,6 +49,7 @@ class ItemModelTests(TestCase):
         self.assertEqual(properties["category"], "items")
         self.assertEqual(properties["type"], int(api_models.FileType.Image))
 
+    # Checking item ID matches as expected
     def test_try_get_item_returns_item_when_id_matches(self):
         item = api_models.Item.objects.create(
             state=int(api_models.FileState.NeedsLabel),
@@ -175,9 +178,7 @@ class ProcessImagesTests(TestCase):
     def test_build_curve_from_slider_is_monotonic(self):
         process_images = self._import_process_images()
         curve = process_images.build_curve_from_slider(0.8)
-        self.assertTrue(
-            all(curve[i] <= curve[i + 1] for i in range(len(curve) - 1))
-        )
+        self.assertTrue(all(curve[i] <= curve[i + 1] for i in range(len(curve) - 1)))
 
     def test_build_curve_from_slider_clamps_input(self):
         process_images = self._import_process_images()
@@ -221,9 +222,7 @@ class ProcessImagesTests(TestCase):
     def test_clean_corners_orders_and_clamps(self):
         process_images = self._import_process_images()
         image = Image.new("RGB", (10, 10), color="white")
-        x1, y1, x2, y2 = process_images.clean_corners(
-            image, corners=(-10, 20, 15, -5)
-        )
+        x1, y1, x2, y2 = process_images.clean_corners(image, corners=(-10, 20, 15, -5))
 
         self.assertGreaterEqual(x1, 0)
         self.assertGreaterEqual(y1, 0)
@@ -285,8 +284,9 @@ class ProcessImagesTests(TestCase):
             x1, x2, y1, y2 = corners
             return x1, y1, x2, y2
 
-        with patch.object(process_images, "bounding_box_model", fake_model), patch.object(
-            process_images, "clean_corners", side_effect=reorder_to_xyxy
+        with (
+            patch.object(process_images, "bounding_box_model", fake_model),
+            patch.object(process_images, "clean_corners", side_effect=reorder_to_xyxy),
         ):
             bounds = process_images.get_bounds(image)
 
@@ -327,11 +327,14 @@ class ProcessImagesTests(TestCase):
         def fake_model(_image, verbose=False):
             return [[DummyBound()]]
 
-        with patch.object(process_images, "bounding_box_model", fake_model), patch.object(
-            process_images,
-            "clean_corners",
-            side_effect=lambda _img, corners: corners,
-        ) as clean_corners:
+        with (
+            patch.object(process_images, "bounding_box_model", fake_model),
+            patch.object(
+                process_images,
+                "clean_corners",
+                side_effect=lambda _img, corners: corners,
+            ) as clean_corners,
+        ):
             process_images.get_bounds(image)
 
         self.assertEqual(clean_corners.call_count, 2)
@@ -339,9 +342,7 @@ class ProcessImagesTests(TestCase):
     def test_clean_corners_grayscale_input(self):
         process_images = self._import_process_images()
         image = Image.new("L", (20, 10), color=128)
-        x1, y1, x2, y2 = process_images.clean_corners(
-            image, corners=(-5, 25, 12, -3)
-        )
+        x1, y1, x2, y2 = process_images.clean_corners(image, corners=(-5, 25, 12, -3))
 
         self.assertGreaterEqual(x1, 0)
         self.assertGreaterEqual(y1, 0)
