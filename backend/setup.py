@@ -1,5 +1,4 @@
 import os
-import subprocess
 
 required_env_variables = """
 MEDIA_PATH=
@@ -7,7 +6,7 @@ DATABASE_PATH=
 DROPBOX_PATH=
 CERT_PATH='selftest_cert'
 KEY_FILE_PATH='selftest_key'
-DJANGO_SECRET_KEY=
+DJANGO_SECRET_KEY='delete_this_insecure_key'
 """
 
 backend_env_path = ".env"
@@ -29,10 +28,8 @@ PRIORITY_COLORS = {}
 """
 override_path = "api/utils/overrides.py"
 if not os.path.exists(override_path):
-    with open(backend_env_path, "w") as f:
+    with open(override_path, "w") as f:
         lines = override_code.split("\n")
-        lines = [line.strip() + "\n" for line in lines if line.strip()]
+        lines = [line + "\n" for line in lines if line.strip()]
 
         f.writelines(lines)
-
-subprocess.run("python manage.py setup")

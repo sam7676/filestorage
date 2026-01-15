@@ -37,6 +37,7 @@
 ## Testing Notes
 - Main backend test target: `manage.py test api`
 - Coverage is run via `uv run -m coverage`.
+- Frontend coverage: `cd frontend` then `npm run test:coverage`.
 
 ## Editing Guidelines
 - Follow existing patterns in `backend/api` and `backend/api/utils`.
@@ -51,4 +52,4 @@
 ## Environment Notes
 - `setup.py` creates a required environment variable with placeholder values to fill in.
 - Database is SQLite at `data/database.sqlite3`; agents must not touch it.
-- Python linting uses `ruff` via `uv`; `ty` will be added soon.
+- Python linting uses `ruff` via `uv` (no `ty` because of Django).
