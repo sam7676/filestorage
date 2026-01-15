@@ -495,7 +495,7 @@ class TagApp:
                 tag_entry_name.config(bg=priority_bg)
 
             # If dealing with colours, we load the colours themselves rather than the names (less width!)
-            if all(v in COLOR_DATA_NAMES for v in tag_values):
+            if all(v in COLOR_DATA_NAMES for v in tag_values) and tag_values:
                 start_idx = 1
 
                 if not can_fit_all_colours:
