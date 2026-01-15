@@ -102,8 +102,11 @@ class MultitagApp:
         self.close_window()
 
     def close_window(self):
-        for widget in self.main_frame.winfo_children():
-            widget.destroy()
+        try:
+            for widget in self.main_frame.winfo_children():
+                widget.destroy()
+        except tk.TclError:
+            pass
 
         self.win.quit()
         try:
