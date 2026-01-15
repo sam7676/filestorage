@@ -38,10 +38,6 @@ jobs:
         working-directory: backend
         run: python setup.py
 
-      - name: Django setup
-        working-directory: backend
-        run: uv run manage.py setup
-
       - name: Run backend tests
         working-directory: backend
         run: uv run -m coverage run manage.py test api
