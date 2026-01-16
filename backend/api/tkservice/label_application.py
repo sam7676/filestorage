@@ -124,7 +124,7 @@ class LabelApp:
 
         # Canvas
 
-        canvas = tk.Canvas(image_frame, width=150 * ITEMS_ON_PAGE, height=700)
+        canvas = tk.Canvas(image_frame, width=200 * ITEMS_ON_PAGE, height=700)
         self.scrollbar_y = tk.Scrollbar(
             image_frame, orient="vertical", command=canvas.yview
         )
