@@ -222,7 +222,7 @@ class ProcessImagesTests(TestCase):
     def test_clean_corners_orders_and_clamps(self):
         process_images = self._import_process_images()
         image = Image.new("RGB", (10, 10), color="white")
-        x1, y1, x2, y2 = process_images.clean_corners(image, corners=(-10, 20, 15, -5))
+        x1, x2, y1, y2 = process_images.clean_corners(image, corners=(-10, 20, 15, -5))
 
         self.assertGreaterEqual(x1, 0)
         self.assertGreaterEqual(y1, 0)
@@ -272,6 +272,10 @@ class ProcessImagesTests(TestCase):
                     dtype=float,
                 )
                 self.cls = process_images.np.array([1, 0])
+                self._len = len(self.xyxy)
+
+            def __len__(self):
+                return self._len
 
         class DummyBound:
             def __init__(self):
@@ -319,6 +323,10 @@ class ProcessImagesTests(TestCase):
                     dtype=float,
                 )
                 self.cls = process_images.np.array([0, 1])
+                self._len = len(self.xyxy)
+
+            def __len__(self):
+                return self._len
 
         class DummyBound:
             def __init__(self):
@@ -342,7 +350,7 @@ class ProcessImagesTests(TestCase):
     def test_clean_corners_grayscale_input(self):
         process_images = self._import_process_images()
         image = Image.new("L", (20, 10), color=128)
-        x1, y1, x2, y2 = process_images.clean_corners(image, corners=(-5, 25, 12, -3))
+        x1, x2, y1, y2 = process_images.clean_corners(image, corners=(-5, 25, 12, -3))
 
         self.assertGreaterEqual(x1, 0)
         self.assertGreaterEqual(y1, 0)
