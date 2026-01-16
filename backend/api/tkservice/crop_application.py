@@ -425,7 +425,7 @@ class CropApp:
                     item_id=self.item_id,
                     rendered_size=(self.image.width, self.image.height),
                     crop=(x1, x2, y1, y2),
-                    new_state=FileState.NeedsLabel,
+                    new_state=FileState.NeedsModify,
                     save_or_new="save",
                     alpha=self.alpha,
                 )
@@ -435,7 +435,7 @@ class CropApp:
                     item_id=self.item_id,
                     rendered_size=(self.image.width, self.image.height),
                     crop=(None, None, None, None),
-                    new_state=FileState.NeedsLabel,
+                    new_state=FileState.NeedsModify,
                     save_or_new="save",
                     alpha=self.alpha,
                 )
@@ -444,7 +444,7 @@ class CropApp:
                 item_id=self.item_id,
                 rendered_size=(self.image.width, self.image.height),
                 crop=(None, None, None, None),
-                new_state=FileState.NeedsLabel,
+                new_state=FileState.NeedsModify,
                 save_or_new="save",
                 alpha=self.alpha,
             )
@@ -461,7 +461,7 @@ class CropApp:
                     item_id=self.item_id,
                     rendered_size=(self.image.width, self.image.height),
                     crop=(x1, x2, y1, y2),
-                    new_state=FileState.NeedsLabel,
+                    new_state=FileState.NeedsModify,
                     save_or_new="save",
                     alpha=self.alpha,
                 )
@@ -471,7 +471,7 @@ class CropApp:
                     item_id=self.item_id,
                     rendered_size=(self.image.width, self.image.height),
                     crop=(None, None, None, None),
-                    new_state=FileState.NeedsLabel,
+                    new_state=FileState.NeedsModify,
                     save_or_new="new",
                     alpha=self.alpha,
                 )
@@ -480,7 +480,7 @@ class CropApp:
                 item_id=self.item_id,
                 rendered_size=(self.image.width, self.image.height),
                 crop=(None, None, None, None),
-                new_state=FileState.NeedsLabel,
+                new_state=FileState.NeedsModify,
                 save_or_new="new",
                 alpha=self.alpha,
             )
@@ -558,7 +558,7 @@ class CropApp:
         if self.bounds:
             self.bounds_ind = (self.bounds_ind + 1) % len(self.bounds)
 
-            x1, y1, x2, y2 = self.bounds[self.bounds_ind]
+            x1, x2, y1, y2 = self.bounds[self.bounds_ind]
 
             self.left_canvas_cords = (x1, y1)
             self.right_canvas_cords = (x2, y2)
@@ -576,7 +576,7 @@ class CropApp:
         if self.bounds:
             self.bounds_ind = (self.bounds_ind - 1) % len(self.bounds)
 
-            x1, y1, x2, y2 = self.bounds[self.bounds_ind]
+            x1, x2, y1, y2 = self.bounds[self.bounds_ind]
 
             self.left_canvas_cords = (x1, y1)
             self.right_canvas_cords = (x2, y2)
