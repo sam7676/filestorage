@@ -9,9 +9,9 @@ Database set-up
 setup.py
 ```  
 
-Install `uv` and all dependencies in `pyproject.toml`.
-
 Backend set-up and database population
+
+Install `uv` and all dependencies in `pyproject.toml`.
 ```
 cd backend
 uv run setup.py
