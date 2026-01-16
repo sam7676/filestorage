@@ -7,3 +7,5 @@ uv.lock
 .venv
 api/utils/overrides.py
 .coverage
+runs/
+visit_scripts.ps1

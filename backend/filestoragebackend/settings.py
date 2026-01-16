@@ -173,5 +173,6 @@ RUNSERVER_PLUS_EXCLUDE_PATTERNS = [
     "api/management/commands/*",
     "api/tkservice/*",
     ".venv/*",
+    "*__pycache__/*",
 ]
 RUNSERVER_PLUS_POLLER_RELOADER_TYPE = "stat"

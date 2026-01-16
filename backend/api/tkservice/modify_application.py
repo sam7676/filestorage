@@ -3,6 +3,7 @@ from api.views_extension import (
     get_thumbnail,
     edit_item,
     delete_items,
+    start_file
 )
 from api.utils.process_images import crop_and_resize_image
 from api.models import Item, FileState
@@ -159,7 +160,7 @@ class ModifyApp:
                 text=item_id,
                 width=10,
                 relief="groove",
-                command=partial(self.open_item, item_id),
+                command=partial(start_file, item_id),
             )
             label.config(font=("Arial", 10))
 
@@ -212,7 +213,7 @@ class ModifyApp:
         image = Image.open(path)
 
         image = crop_and_resize_image(
-            image, x1=0, x2=image.width, y1=0, y2=image.height
+            image, (0, image.width, 0, image.height)
         )
         image.save(path)
 
@@ -227,9 +228,6 @@ class ModifyApp:
             new_height=new_height,
         )
         self.reset()
-
-    def open_item(self, item_id):
-        os.startfile(Item.objects.filter(id=item_id).get().getpath())
 
     def open_items(self, item_ids):
         for item_id in item_ids:

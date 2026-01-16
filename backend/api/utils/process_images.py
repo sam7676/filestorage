@@ -40,8 +40,9 @@ def get_bounds(image):
     for bound in bounds[
         0
     ]:  # model takes batch, as we only care about 1 we use the [0] idx
-        for j in range(len(bound.boxes.xyxy)):
+        for j in range(len(bound.boxes)):
             x1, y1, x2, y2 = bound.boxes.xyxy[j].tolist()
+
             image_class = int(bound.boxes.cls[j])
 
             x1, x2, y1, y2 = clean_corners(image, (x1, x2, y1, y2))
@@ -50,7 +51,7 @@ def get_bounds(image):
                 person_bounds.append((x1, x2, y1, y2))
             else:
                 other_bounds.append((x1, x2, y1, y2))
-
+    
     return person_bounds + other_bounds
 
 
@@ -122,7 +123,7 @@ def clean_corners(image, corners):  # (x1, x2, y1, y2)
     x1, x2 = process_pair(x1, x2, image.width)
     y1, y2 = process_pair(y1, y2, image.height)
 
-    return x1, y1, x2, y2
+    return x1, x2, y1, y2
 
 
 def crop_and_resize_image(base_image, corners):  # (x1, x2, y1, y2)

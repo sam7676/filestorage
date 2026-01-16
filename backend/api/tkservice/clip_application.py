@@ -5,12 +5,14 @@ from api.views_extension import (
     get_tag,
     edit_item,
     delete_items,
+    start_file,
 )
 import tkinter as tk
 from PIL import ImageTk
 from tkvideo import tkvideo
 from api.models import Item, FileType, FileState
 from PIL import Image
+from functools import partial
 
 MAX_HEIGHT_IN_CROP = 650
 MAX_WIDTH_OF_CROP = 700
@@ -106,9 +108,25 @@ class ClipApplication:
             resized_image = get_thumbnail(item.id, new_width, new_height)
 
             photo_image = ImageTk.PhotoImage(resized_image)
-
-            label = tk.Label(master=frame, image=photo_image, width=new_width)
-            label.photo = photo_image
+            
+            if item.filetype == int(FileType.Image):
+                
+                label = tk.Button(
+                    master=frame,
+                    image=photo_image,
+                    width=new_width,
+                    command=partial(start_file, item.id),
+                    relief=tk.FLAT,
+                    borderwidth=0,
+                    highlightthickness=0,
+                    padx=0,
+                    pady=0,
+                )
+                label.image = photo_image
+            
+            else:
+                label = tk.Label(master=frame, image=photo_image, width=new_width)
+                label.photo = photo_image
 
             return label
 
@@ -118,9 +136,19 @@ class ClipApplication:
                 resized_image = image.resize((new_width, new_height))
 
                 photo_image = ImageTk.PhotoImage(resized_image)
-
-                label = tk.Label(master=frame, image=photo_image, width=new_width)
-                label.photo = photo_image
+                
+                label = tk.Button(
+                    master=frame,
+                    image=photo_image,
+                    width=new_width,
+                    command=partial(start_file, item.id),
+                    relief=tk.FLAT,
+                    borderwidth=0,
+                    highlightthickness=0,
+                    padx=0,
+                    pady=0,
+                )
+                label.image = photo_image
 
                 return label
 

@@ -85,6 +85,10 @@ export default function View() {
         else if (message == "Body is disturbed or locked") { }
         else if (message == "The operation timed out.") {
             alert('The operation timed out.')
+            try {
+                window.location.reload()
+            }
+            catch (e) { }
         }
         else {
             alert(`Failed to load media. Check console for details. Error: ${message}.`);

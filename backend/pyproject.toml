@@ -3,7 +3,7 @@ name = "backend"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
 "django",
 "django-extensions",
@@ -16,7 +16,7 @@ dependencies = [
 "moviepy",
 "opencv-python",
 "transformers",
-"Werkzeug",
+"werkzeug==2.0.0",
 "pyOpenSSL",
 "django-cors-headers",
 "tkvideo",
