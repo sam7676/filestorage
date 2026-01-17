@@ -26,6 +26,7 @@ from api.utils.process_images import (
     get_crop_image_and_bounds,
     crop_and_resize_image,
     apply_rgb_curves,
+    rotate_image_90,
     MEDIA_HEIGHT,
 )
 from api.utils.key_paths import UNPROCESSED_PATH
@@ -91,6 +92,7 @@ def crop_and_resize_from_view(
     new_state,
     save_or_new="save",
     alpha=0.0,
+    rotate_degrees=0,
 ):
     item = Item.objects.all().filter(id=item_id).get()
 
@@ -112,6 +114,8 @@ def crop_and_resize_from_view(
 
     resized_image = crop_and_resize_image(base_image, corners=(x1, x2, y1, y2))
     resized_image = apply_rgb_curves(resized_image, alpha)
+    if rotate_degrees:
+        resized_image = rotate_image_90(resized_image, turns=rotate_degrees // 90)
 
     if save_or_new == "save":
         resized_image.save(old_path)
@@ -134,6 +138,7 @@ def crop_and_resize_from_view(
             label=label, state=state, width=width, filetype=filetype, height=height
         )
 
+        Path(new_item.getpath()).parent.mkdir(parents=True, exist_ok=True)
         resized_image.save(new_item.getpath())
 
     else:
@@ -447,13 +452,14 @@ def edit_item(item_id, new_state=None, new_label=None, new_width=None, new_heigh
         and item.filetype == int(FileType.Image)
         and item.state >= int(FileState.NeedsClip)
     ):
-        image = Image.open(item.getpath())
+        resize_path = old_path if os.path.exists(old_path) else item.getpath()
+        image = Image.open(resize_path)
 
         new_width = int(image.width * MEDIA_HEIGHT / image.height)
 
         image = image.resize((new_width, MEDIA_HEIGHT))
 
-        image.save(item.getpath())
+        image.save(resize_path)
 
         item.height = MEDIA_HEIGHT
         item.width = new_width

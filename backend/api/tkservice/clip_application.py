@@ -2,7 +2,6 @@ from api.views_extension import (
     get_next_clip_item,
     get_nearest_item,
     get_thumbnail,
-    get_tag,
     edit_item,
     delete_items,
     start_file,
@@ -108,9 +107,8 @@ class ClipApplication:
             resized_image = get_thumbnail(item.id, new_width, new_height)
 
             photo_image = ImageTk.PhotoImage(resized_image)
-            
+
             if item.filetype == int(FileType.Image):
-                
                 label = tk.Button(
                     master=frame,
                     image=photo_image,
@@ -123,7 +121,7 @@ class ClipApplication:
                     pady=0,
                 )
                 label.image = photo_image
-            
+
             else:
                 label = tk.Label(master=frame, image=photo_image, width=new_width)
                 label.photo = photo_image
@@ -136,7 +134,7 @@ class ClipApplication:
                 resized_image = image.resize((new_width, new_height))
 
                 photo_image = ImageTk.PhotoImage(resized_image)
-                
+
                 label = tk.Button(
                     master=frame,
                     image=photo_image,
@@ -259,12 +257,7 @@ class ClipApplication:
         swap_button.grid(row=0, column=1)
 
     def approve(self, item_id):
-        # Temporary move if item has already been tagged
-        # TODO: eventually remove
-        if get_tag(item_id, "bottomcolor"):
-            edit_item(item_id=item_id, new_state=int(FileState.Complete))
-        else:
-            edit_item(item_id=item_id, new_state=int(FileState.NeedsTags))
+        edit_item(item_id=item_id, new_state=int(FileState.NeedsTags))
         self.reset()
 
     def delete(self, item_id):
