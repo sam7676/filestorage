@@ -161,9 +161,9 @@ class TagApplication(QtWidgets.QMainWindow):
         root = QtWidgets.QWidget(self)
         self.setCentralWidget(root)
 
-        layout = QtWidgets.QHBoxLayout(root)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        self.main_layout = QtWidgets.QHBoxLayout(root)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_layout.setSpacing(10)
 
         # Media panel
         self.media_container = QtWidgets.QFrame()
@@ -233,8 +233,8 @@ class TagApplication(QtWidgets.QMainWindow):
         self.suggested_scroll.setWidget(self.suggested_scroll_contents)
         self.tag_layout.addWidget(self.suggested_scroll, 3)
 
-        layout.addWidget(self.media_container, 3)
-        layout.addWidget(self.tag_container, 2)
+        self.main_layout.addWidget(self.media_container, 1)
+        self.main_layout.addWidget(self.tag_container, 1)
 
         self.confirm_button.clicked.connect(self.confirm)
         self.delete_button.clicked.connect(self.delete)
@@ -331,6 +331,14 @@ class TagApplication(QtWidgets.QMainWindow):
             new_height = int(round(new_width * self.item.height / self.item.width))
         self.widget_width = new_width
         self.widget_height = new_height
+        if hasattr(self, "main_layout"):
+            total_width = max(self.width(), 1)
+            image_stretch = max(
+                1, int(round(min(self.widget_width / total_width, 1.0) * 100))
+            )
+            tag_stretch = max(1, 100 - image_stretch)
+            self.main_layout.setStretch(0, image_stretch)
+            self.main_layout.setStretch(1, tag_stretch)
 
     def load_media(self):
         self.clear_media_area()
