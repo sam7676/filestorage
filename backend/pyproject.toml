@@ -21,6 +21,8 @@ dependencies = [
 "django-cors-headers",
 "tkvideo",
 "coverage",
+"pyside6",
+"python-vlc",
 ]
 
 [tool.coverage.run]
@@ -46,4 +48,10 @@ directory = "htmlcov"
 [dependency-groups]
 dev = [
     "ty>=0.0.12",
+    "pytest>=8.0.0",
+    "pytest-qt>=4.4.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["api"]
+qt_api = "pyside6"

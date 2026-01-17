@@ -189,3 +189,14 @@ def apply_rgb_curves(img: Image.Image, a: float) -> Image.Image:
     b = b.point(lut)
 
     return Image.merge("RGB", (r, g, b))
+
+
+def rotate_image_90(img: Image.Image, turns: int = 1) -> Image.Image:
+    turns = turns % 4
+    if turns == 0:
+        return img
+    if turns == 1:
+        return img.transpose(Image.ROTATE_270)
+    if turns == 2:
+        return img.transpose(Image.ROTATE_180)
+    return img.transpose(Image.ROTATE_90)

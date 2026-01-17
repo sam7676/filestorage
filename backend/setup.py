@@ -21,7 +21,7 @@ override_code = """
 def override_random_item(tags, filetype):
     return tags
 
-TKSERVICE_REQUIRED_TAGS = ()
+SERVICE_REQUIRED_TAGS = ()
 
 PRIORITY_TAG_MAP = {}
 PRIORITY_COLORS = {}
