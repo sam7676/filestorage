@@ -33,6 +33,8 @@ class CropGraphicsView(QtWidgets.QGraphicsView):
 
 class CropApplication(QtWidgets.QMainWindow):
     def __init__(self):
+        # Image max height is 0.7 * screen height if screen exists, else 700
+
         super().__init__()
         self.window_closed_manually = False
         self._closing_for_complete = False
@@ -51,7 +53,7 @@ class CropApplication(QtWidgets.QMainWindow):
         self.right_canvas_cords = None
         self.selection_items = []
 
-        self.setWindowTitle("Cropper")
+        self.setWindowTitle("Crop application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()
@@ -68,6 +70,10 @@ class CropApplication(QtWidgets.QMainWindow):
         self.load_next_item()
 
     def _build_ui(self):
+        # Margins: are they necessary?
+        # Spacing is 8
+        # Look at slider - goes between -100 and 100 in this version, do we want this?
+
         root = QtWidgets.QWidget(self)
         self.setCentralWidget(root)
 
@@ -107,6 +113,9 @@ class CropApplication(QtWidgets.QMainWindow):
         self.slider.setPageStep(10)
         self.slider.sliderReleased.connect(self.on_slider_release)
 
+        # Stretch factors are used to change how much space widgets are given in proportion to one another
+        # 3, 3, 0 here says image gets 50% and preview gets 50% of width
+
         content_layout.addWidget(self.view, 3)
         content_layout.addWidget(self.preview_label, 3)
         content_layout.addWidget(self.slider, 0)
@@ -117,9 +126,7 @@ class CropApplication(QtWidgets.QMainWindow):
         self.delete_button = QtWidgets.QPushButton("Delete")
         self.confirm_button = QtWidgets.QPushButton("Enter")
         self.scale_label = QtWidgets.QPushButton(f"Scale: {self.scale_ind}")
-        self.bounds_label = QtWidgets.QPushButton(
-            f"Bounds: {self.bounds_ind} / 0"
-        )
+        self.bounds_label = QtWidgets.QPushButton(f"Bounds: {self.bounds_ind} / 0")
         self.bounds_label.clicked.connect(self.reset_bounds)
         self.modify_button = QtWidgets.QPushButton("Modify")
         self.modify_copy_button = QtWidgets.QPushButton("Modify Copy")
@@ -155,20 +162,40 @@ class CropApplication(QtWidgets.QMainWindow):
         QtGui.QShortcut(QtGui.QKeySequence("n"), self, activated=self.modify_copy)
         QtGui.QShortcut(QtGui.QKeySequence("r"), self, activated=self.reset_bounds)
 
-        QtGui.QShortcut(QtGui.QKeySequence("w"), self, activated=lambda: self.move_up(1))
-        QtGui.QShortcut(QtGui.QKeySequence("a"), self, activated=lambda: self.move_left(1))
-        QtGui.QShortcut(QtGui.QKeySequence("s"), self, activated=lambda: self.move_down(1))
-        QtGui.QShortcut(QtGui.QKeySequence("d"), self, activated=lambda: self.move_right(1))
+        QtGui.QShortcut(
+            QtGui.QKeySequence("w"), self, activated=lambda: self.move_up(1)
+        )
+        QtGui.QShortcut(
+            QtGui.QKeySequence("a"), self, activated=lambda: self.move_left(1)
+        )
+        QtGui.QShortcut(
+            QtGui.QKeySequence("s"), self, activated=lambda: self.move_down(1)
+        )
+        QtGui.QShortcut(
+            QtGui.QKeySequence("d"), self, activated=lambda: self.move_right(1)
+        )
 
-        QtGui.QShortcut(QtGui.QKeySequence("Up"), self, activated=lambda: self.move_up(2))
-        QtGui.QShortcut(QtGui.QKeySequence("Left"), self, activated=lambda: self.move_left(2))
-        QtGui.QShortcut(QtGui.QKeySequence("Down"), self, activated=lambda: self.move_down(2))
-        QtGui.QShortcut(QtGui.QKeySequence("Right"), self, activated=lambda: self.move_right(2))
+        QtGui.QShortcut(
+            QtGui.QKeySequence("Up"), self, activated=lambda: self.move_up(2)
+        )
+        QtGui.QShortcut(
+            QtGui.QKeySequence("Left"), self, activated=lambda: self.move_left(2)
+        )
+        QtGui.QShortcut(
+            QtGui.QKeySequence("Down"), self, activated=lambda: self.move_down(2)
+        )
+        QtGui.QShortcut(
+            QtGui.QKeySequence("Right"), self, activated=lambda: self.move_right(2)
+        )
 
         QtGui.QShortcut(QtGui.QKeySequence("["), self, activated=self.decrease_scale)
         QtGui.QShortcut(QtGui.QKeySequence("]"), self, activated=self.increase_scale)
-        QtGui.QShortcut(QtGui.QKeySequence("PgUp"), self, activated=self.decrease_bounds)
-        QtGui.QShortcut(QtGui.QKeySequence("PgDown"), self, activated=self.increase_bounds)
+        QtGui.QShortcut(
+            QtGui.QKeySequence("PgUp"), self, activated=self.decrease_bounds
+        )
+        QtGui.QShortcut(
+            QtGui.QKeySequence("PgDown"), self, activated=self.increase_bounds
+        )
         QtGui.QShortcut(QtGui.QKeySequence("t"), self, activated=self.rotate_90)
 
     def _apply_dark_theme(self):
@@ -188,6 +215,8 @@ class CropApplication(QtWidgets.QMainWindow):
 
     def load_next_item(self):
         data = get_next_crop_item(self.max_height_in_crop)
+
+        # Out of items, close window
         if data is None:
             self._closing_for_complete = True
             self.completed = True
@@ -299,14 +328,24 @@ class CropApplication(QtWidgets.QMainWindow):
         if self.left_canvas_cords:
             x, y = self.left_canvas_cords
             marker = self.scene.addRect(
-                x - 3, y - 3, 6, 6, QtGui.QPen(QtGui.QColor("green")), QtGui.QBrush(QtGui.QColor("green"))
+                x - 3,
+                y - 3,
+                6,
+                6,
+                QtGui.QPen(QtGui.QColor("green")),
+                QtGui.QBrush(QtGui.QColor("green")),
             )
             self.selection_items.append(marker)
 
         if self.right_canvas_cords:
             x, y = self.right_canvas_cords
             marker = self.scene.addRect(
-                x - 3, y - 3, 6, 6, QtGui.QPen(QtGui.QColor("blue")), QtGui.QBrush(QtGui.QColor("blue"))
+                x - 3,
+                y - 3,
+                6,
+                6,
+                QtGui.QPen(QtGui.QColor("blue")),
+                QtGui.QBrush(QtGui.QColor("blue")),
             )
             self.selection_items.append(marker)
 
@@ -464,6 +503,8 @@ class CropApplication(QtWidgets.QMainWindow):
 
 
 def start_crop_application():
+    # Setting height as 0.7 * screen again
+
     app = QtWidgets.QApplication.instance()
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
