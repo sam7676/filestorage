@@ -30,9 +30,9 @@
 ## Run Commands
 - Backend (web): `cd backend` then `uv run manage.py rs`
 - Tests (backend + Qt): `cd backend` then `uv run python scripts/run_tests.py --coverage`
-- Desktop GUI: `cd backend` then `uv run manage.py tkservice` * to be changed to qtservice
+- Desktop GUI: `cd backend` then `uv run manage.py qtservice`
 - Django shell: `cd backend` then `uv run manage.py shell_plus`
-- Frontend: `cd frontend` then `npm run dev -- -p 3001`
+- Frontend: `cd frontend` then `npm run dev`
 
 ## Testing Notes
 - Main backend test target: `manage.py test api`
