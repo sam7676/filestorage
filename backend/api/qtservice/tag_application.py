@@ -583,6 +583,9 @@ class TagApplication(QtWidgets.QMainWindow):
             available = max(viewport_width - label_width, button_width)
             max_colour_buttons = max(1, available // (button_width + 4))
 
+        def _is_colour_value(value):
+            return value in COLOR_DATA_NAMES or value in ("any", "none")
+
         for i, tag_entry in enumerate(tag_items):
             tag_name, tag_values, priority = tag_entry
 
@@ -602,7 +605,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
             row_layout.addWidget(tag_entry_name, 0, QtCore.Qt.AlignLeft)
 
-            if all(v in COLOR_DATA_NAMES for v in tag_values) and tag_values:
+            if tag_values and all(_is_colour_value(v) for v in tag_values):
                 row_layout.setAlignment(QtCore.Qt.AlignLeft)
                 row_colours = list(colours)
                 if not can_fit_all_colours:
@@ -616,6 +619,7 @@ class TagApplication(QtWidgets.QMainWindow):
                     )
 
                     tag_entry_submit = QtWidgets.QPushButton("Add")
+                    tag_entry_submit.setFixedWidth(36)
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
                     )
@@ -650,13 +654,15 @@ class TagApplication(QtWidgets.QMainWindow):
                     )
 
                     tag_entry_submit = QtWidgets.QPushButton("")
-                    tag_entry_submit.setFixedSize(18, 18)
+                    tag_entry_submit.setFixedSize(14, 14)
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
                     )
                     tag_entry_submit.setToolTip(tag_value)
 
-                    tag_entry_submit.setStyleSheet(f"background-color: {tag_color};")
+                    tag_entry_submit.setStyleSheet(
+                        f"background-color: {tag_color}; padding: 0px;"
+                    )
 
                     row_layout.addWidget(tag_entry_submit, 0)
                     if distribute_colours and idx < len(row_colours) - 1:
@@ -674,7 +680,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
             else:
                 value_rank_dictionary = {}
-                if len(tag_values) < provided_query_width:
+                if 0 < len(tag_values) < provided_query_width:
                     sorted_vals = list(sorted(tag_values))
                     n = len(sorted_vals)
                     for j, v in enumerate(sorted_vals):
@@ -733,6 +739,8 @@ class TagApplication(QtWidgets.QMainWindow):
                     )
 
                     tag_entry_submit = QtWidgets.QPushButton("")
+                    tag_entry_submit.setFixedWidth(14)
+                    tag_entry_submit.setStyleSheet("padding: 0px;")
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
                     )
