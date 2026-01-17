@@ -6,6 +6,7 @@ import types
 from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -14,6 +15,8 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api import models as api_models
+from api import views_extension
+from api.views_extension import add_tags, crop_and_resize_from_view
 
 
 class ItemModelTests(TestCase):
@@ -258,6 +261,14 @@ class ProcessImagesTests(TestCase):
         self.assertEqual(adjusted_image.mode, "RGB")
         self.assertEqual(adjusted_image.size, image.size)
 
+    def test_rotate_image_90_changes_dimensions(self):
+        process_images = self._import_process_images()
+        image = Image.new("RGB", (80, 40), color="white")
+
+        rotated = process_images.rotate_image_90(image, turns=1)
+
+        self.assertEqual(rotated.size, (40, 80))
+
     def test_get_bounds_orders_person_before_other(self):
         process_images = self._import_process_images()
         image = Image.new("RGB", (10, 10), color="white")
@@ -367,6 +378,227 @@ class ProcessImagesTests(TestCase):
         )
 
         self.assertEqual(resized.size[1], process_images.MEDIA_HEIGHT)
+
+
+class ViewsExtensionTests(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.old_media_path = api_models.MEDIA_PATH
+        api_models.MEDIA_PATH = self.temp_dir.name
+        self.addCleanup(setattr, api_models, "MEDIA_PATH", self.old_media_path)
+
+    def test_crop_and_resize_from_view_rotates(self):
+        item = api_models.Item.objects.create(
+            state=int(api_models.FileState.NeedsCrop),
+            label="",
+            filetype=int(api_models.FileType.Image),
+            width=80,
+            height=40,
+        )
+
+        path = Path(item.getpath())
+        path.parent.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", (80, 40), color="white").save(path)
+
+        views_extension.crop_and_resize_from_view(
+            item_id=item.id,
+            rendered_size=(40, 80),
+            crop=(0, 40, 0, 80),
+            new_state=api_models.FileState.NeedsLabel,
+            save_or_new="save",
+            alpha=0.0,
+            rotate_degrees=90,
+        )
+
+        item.refresh_from_db()
+        rotated_path = Path(item.getpath())
+        rotated = Image.open(rotated_path)
+        self.assertEqual(
+            rotated.size, (views_extension.MEDIA_HEIGHT, views_extension.MEDIA_HEIGHT * 2)
+        )
+
+    def test_crop_and_resize_from_view_no_rotation(self):
+        item = api_models.Item.objects.create(
+            state=int(api_models.FileState.NeedsCrop),
+            label="",
+            filetype=int(api_models.FileType.Image),
+            width=80,
+            height=40,
+        )
+
+        path = Path(item.getpath())
+        path.parent.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", (80, 40), color="white").save(path)
+
+        views_extension.crop_and_resize_from_view(
+            item_id=item.id,
+            rendered_size=(80, 40),
+            crop=(0, 80, 0, 40),
+            new_state=api_models.FileState.NeedsLabel,
+            save_or_new="save",
+            alpha=0.0,
+            rotate_degrees=0,
+        )
+
+        item.refresh_from_db()
+        resized_path = Path(item.getpath())
+        resized = Image.open(resized_path)
+        self.assertEqual(resized.size, (1600, views_extension.MEDIA_HEIGHT))
+
+
+class QtServicePipelineTests(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.old_media_path = api_models.MEDIA_PATH
+        api_models.MEDIA_PATH = self.temp_dir.name
+        self.addCleanup(setattr, api_models, "MEDIA_PATH", self.old_media_path)
+
+    def _create_image_item(self, state, size=(80, 40)):
+        item = api_models.Item.objects.create(
+            state=int(state),
+            label="",
+            filetype=int(api_models.FileType.Image),
+            width=size[0],
+            height=size[1],
+        )
+        path = Path(item.getpath())
+        path.parent.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", size, color="white").save(path)
+        return item
+
+    def _create_video_item(self, state):
+        item = api_models.Item.objects.create(
+            state=int(state),
+            label="",
+            filetype=int(api_models.FileType.Video),
+            width=320,
+            height=180,
+        )
+        path = Path(item.getpath())
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"fake video bytes")
+        return item
+
+    def test_pipeline_image_to_complete_with_label_edit(self):
+        item = self._create_image_item(api_models.FileState.NeedsCrop)
+
+        crop_and_resize_from_view(
+            item_id=item.id,
+            rendered_size=(80, 40),
+            crop=(0, 80, 0, 40),
+            new_state=api_models.FileState.NeedsModify,
+            save_or_new="save",
+            alpha=0.0,
+        )
+
+        item.refresh_from_db()
+        self.assertEqual(item.state, int(api_models.FileState.NeedsModify))
+
+        image = Image.open(item.getpath())
+        resized = views_extension.crop_and_resize_image(
+            image, (0, image.width, 0, image.height)
+        )
+        resized.save(item.getpath())
+        views_extension.edit_item(
+            item_id=item.id,
+            new_state=int(api_models.FileState.NeedsLabel),
+            new_width=resized.width,
+            new_height=resized.height,
+        )
+
+        item.refresh_from_db()
+        self.assertEqual(item.state, int(api_models.FileState.NeedsLabel))
+
+        views_extension.edit_item(
+            item_id=item.id,
+            new_label="cat",
+            new_state=int(api_models.FileState.NeedsClip),
+        )
+
+        add_tags({item.id: {"color": ["red"], "source": ["internal"]}})
+
+        with patch.object(
+            views_extension.ClipModel, "process_item", return_value=np.zeros(8)
+        ):
+            views_extension.ClipModel.process_unclipped_items()
+
+        views_extension.edit_item(
+            item_id=item.id, new_state=int(api_models.FileState.NeedsTags)
+        )
+        views_extension.edit_item(item_id=item.id, new_label="dog")
+        views_extension.edit_item(
+            item_id=item.id, new_state=int(api_models.FileState.Complete)
+        )
+
+        item.refresh_from_db()
+        self.assertEqual(item.state, int(api_models.FileState.Complete))
+        self.assertEqual(item.label, "dog")
+
+        labelplus_values = set(
+            api_models.Tags.objects.filter(item_id=item.id, name="labelplus").values_list(
+                "value", flat=True
+            )
+        )
+        self.assertIn("dog", labelplus_values)
+
+    def test_pipeline_video_skips_crop_modify(self):
+        item = self._create_video_item(api_models.FileState.NeedsLabel)
+
+        views_extension.edit_item(
+            item_id=item.id,
+            new_label="clip",
+            new_state=int(api_models.FileState.NeedsClip),
+        )
+        add_tags({item.id: {"source": ["internal"]}})
+
+        with patch.object(
+            views_extension.ClipModel, "process_item", return_value=np.zeros(8)
+        ):
+            views_extension.ClipModel.process_unclipped_items()
+
+        views_extension.edit_item(
+            item_id=item.id, new_state=int(api_models.FileState.NeedsTags)
+        )
+        views_extension.edit_item(
+            item_id=item.id, new_state=int(api_models.FileState.Complete)
+        )
+
+        item.refresh_from_db()
+        self.assertEqual(item.state, int(api_models.FileState.Complete))
+
+    def test_crop_creates_second_item(self):
+        item = self._create_image_item(api_models.FileState.NeedsCrop)
+
+        crop_and_resize_from_view(
+            item_id=item.id,
+            rendered_size=(80, 40),
+            crop=(10, 70, 5, 35),
+            new_state=api_models.FileState.NeedsLabel,
+            save_or_new="new",
+            alpha=0.0,
+        )
+
+        self.assertEqual(api_models.Item.objects.count(), 2)
+
+    def test_crop_inverted_coords_still_resizes(self):
+        item = self._create_image_item(api_models.FileState.NeedsCrop)
+
+        crop_and_resize_from_view(
+            item_id=item.id,
+            rendered_size=(80, 40),
+            crop=(70, 10, 35, 5),
+            new_state=api_models.FileState.NeedsModify,
+            save_or_new="save",
+            alpha=0.0,
+        )
+
+        item.refresh_from_db()
+        image = Image.open(item.getpath())
+        self.assertEqual(image.size[1], views_extension.MEDIA_HEIGHT)
 
 
 class CleanDbTests(TestCase):

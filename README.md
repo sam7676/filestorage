@@ -11,7 +11,8 @@ setup.py
 
 Backend set-up and database population
 
-Install `uv` and all dependencies in `pyproject.toml`.
+Install `uv` and all dependencies in `pyproject.toml`.   
+Install VLC media player.
 ```
 cd backend
 uv run setup.py
@@ -40,7 +41,13 @@ uv run manage.py rs
 Testing
 ```
 cd backend
-uv run -m coverage run manage.py test api
+uv run python scripts/run_tests.py --coverage
+```
+
+Qt GUI tests only
+```
+cd backend
+uv run -m pytest api/qtservice/tests
 ```
 
 Frontend test coverage
@@ -52,8 +59,9 @@ npm run test:coverage
 Desktop GUI
 ```
 cd backend
-uv run manage.py tkservice
+uv run manage.py tkservice 
 ```
+* to be changed to qtservice
 
 Shell
 ```

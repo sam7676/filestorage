@@ -13,6 +13,7 @@ jobs:
       CERT_PATH: selftest_cert
       KEY_FILE_PATH: selftest_key
       DJANGO_SECRET_KEY: ci-secret-key
+      QT_QPA_PLATFORM: offscreen
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,9 +36,23 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-
 
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/tests.yml') }}
+          restore-keys: |
+            apt-${{ runner.os }}-
+
       - name: Install backend dependencies
         working-directory: backend
         run: uv sync
+
+      - name: Install Qt runtime deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon-x11-0 libxcb-xinerama0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xfixes0
+          sudo apt-get install -y vlc libvlc5 libvlc-dev
 
       - name: Prepare CI paths
         run: |
@@ -48,9 +63,9 @@ jobs:
         working-directory: backend
         run: python setup.py
 
-      - name: Run backend tests
+      - name: Run backend + Qt tests
         working-directory: backend
-        run: uv run -m coverage run manage.py test api
+        run: uv run python scripts/run_tests.py --coverage
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
