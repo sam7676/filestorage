@@ -15,6 +15,7 @@ import vlc
 
 
 VIDEOS_CURRENTLY_PLAYED = 2
+COMPARE_MEDIA_HEIGHT_SCALE = 1.5
 
 
 class VlcVideoWidget(QtWidgets.QFrame):
@@ -103,13 +104,10 @@ class CompareApplication(QtWidgets.QMainWindow):
             width = int(geometry.width() * 0.85)
             height = int(geometry.height() * 0.85)
             self.resize(width, height)
-            self.max_height_in_crop = int(geometry.height() * 0.7)
-            self.max_width_of_crop = int(geometry.width() * 0.5)
+            self._set_crop_limits(geometry.width(), geometry.height())
         else:
             self.resize(1500, 900)
-            self.max_height_in_crop = 760
-            self.max_width_of_crop = 900
-        self.min_height_in_crop = min(self.max_height_in_crop, 160)
+            self._set_crop_limits(1500, 900)
 
         self._build_ui()
         self._apply_dark_theme()
@@ -148,6 +146,13 @@ class CompareApplication(QtWidgets.QMainWindow):
         layout.addLayout(next_row, 0)
 
         QtGui.QShortcut(QtGui.QKeySequence("Return"), self, activated=self.next)
+
+    def _set_crop_limits(self, available_width, available_height):
+        base_height = max(1, int(available_height * 0.4))
+        scaled_height = int(base_height * COMPARE_MEDIA_HEIGHT_SCALE)
+        self.max_height_in_crop = min(max(1, scaled_height), max(1, available_height))
+        self.max_width_of_crop = max(1, int(available_width * 0.4))
+        self.min_height_in_crop = min(self.max_height_in_crop, 160)
 
     def _apply_dark_theme(self):
         self.setStyleSheet(
@@ -359,9 +364,7 @@ class CompareApplication(QtWidgets.QMainWindow):
         super().resizeEvent(event)
         viewport = self.scroll_area.viewport()
         if viewport:
-            self.max_height_in_crop = max(1, int(viewport.height() * 0.4))
-            self.max_width_of_crop = max(1, int(viewport.width() * 0.4))
-            self.min_height_in_crop = min(self.max_height_in_crop, 160)
+            self._set_crop_limits(viewport.width(), viewport.height())
         if self.item:
             self._resize_timer.start(100)
 

@@ -12,9 +12,79 @@ import sys
 
 from PIL import ImageQt
 from PySide6 import QtCore, QtGui, QtWidgets
+import vlc
 
 
 THUMBNAIL_MODE = True
+
+
+class VlcVideoWidget(QtWidgets.QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_NativeWindow)
+        self.setStyleSheet("background-color: #1C1D21;")
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
+        self._instance = vlc.Instance(
+            [
+                "--no-audio",
+                "--no-video-title-show",
+                "--avcodec-hw=any",
+                "--quiet",
+            ]
+        )
+        self._player = self._instance.media_player_new()
+        self._media = None
+        self._is_bound = False
+        self._loop = True
+        self._event_manager = self._player.event_manager()
+        self._event_manager.event_attach(
+            vlc.EventType.MediaPlayerEndReached, self._on_end
+        )
+
+    def bind_player(self):
+        if self._is_bound:
+            return
+        handle = int(self.winId())
+        system = QtCore.QSysInfo.productType()
+        if system == "windows":
+            self._player.set_hwnd(handle)
+        elif system == "osx":
+            self._player.set_nsobject(handle)
+        else:
+            self._player.set_xwindow(handle)
+        self._is_bound = True
+
+    def set_media(self, path, loop=True):
+        self.bind_player()
+        self._media = self._instance.media_new(path)
+        self._loop = loop
+        if loop:
+            self._media.add_option("input-repeat=65535")
+        self._player.set_media(self._media)
+        self._player.audio_set_mute(True)
+        self._player.video_set_scale(0)
+        self._player.video_set_aspect_ratio("")
+
+    def play(self):
+        if self._media:
+            self._player.play()
+
+    def stop(self):
+        self._player.stop()
+
+    def _on_end(self, event):
+        if self._loop:
+            self._player.stop()
+            self._player.play()
+
+    def close(self):
+        try:
+            self.stop()
+        finally:
+            self._player.release()
+            self._instance.release()
 
 
 class ClipApplication(QtWidgets.QMainWindow):
@@ -28,11 +98,14 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.swap = False
         self._last_item_id = None
         self._last_nearest_item_id = None
+        self._video_widgets = []
+        self._screen_geometry = None
 
         self.setWindowTitle("Clip")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()
+            self._screen_geometry = geometry
             width = int(geometry.width() * 0.85)
             height = int(geometry.height() * 0.85)
             self.resize(width, height)
@@ -45,6 +118,9 @@ class ClipApplication(QtWidgets.QMainWindow):
 
         self._build_ui()
         self._apply_dark_theme()
+        self._resize_timer = QtCore.QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.timeout.connect(self.load_items)
         self.load_next_item()
 
     def _build_ui(self):
@@ -124,6 +200,24 @@ class ClipApplication(QtWidgets.QMainWindow):
             """
         )
 
+    def _update_media_constraints(self):
+        rect = self.items_layout.geometry()
+        if rect.height() <= 0 or rect.width() <= 0:
+            if self._screen_geometry:
+                available_height = self._screen_geometry.height()
+                available_width = self._screen_geometry.width()
+            else:
+                available_height = self.height()
+                available_width = self.width()
+        else:
+            available_height = rect.height()
+            available_width = rect.width()
+
+        available_height = max(1, available_height - 48)
+        spacing = self.items_layout.spacing()
+        self.max_height_in_crop = max(1, int(available_height))
+        self.max_width_of_crop = max(1, int((available_width - spacing) / 2))
+
     def load_next_item(self):
         item_id = get_next_clip_item()
         if item_id is None:
@@ -157,10 +251,18 @@ class ClipApplication(QtWidgets.QMainWindow):
             item = layout.takeAt(0)
             widget = item.widget()
             if widget:
+                if isinstance(widget, VlcVideoWidget):
+                    widget.close()
                 widget.deleteLater()
+
+    def _clear_video_players(self):
+        for widget in self._video_widgets:
+            widget.close()
+        self._video_widgets = []
 
     def _get_widget(self, item_id, frame_layout):
         item = Item.objects.filter(id=item_id).get()
+        self._update_media_constraints()
 
         new_width = int(round(item.width * self.max_height_in_crop / item.height))
         new_height = self.max_height_in_crop
@@ -168,31 +270,39 @@ class ClipApplication(QtWidgets.QMainWindow):
             new_width = self.max_width_of_crop
             new_height = int(round(new_width * item.height / item.width))
 
-        if THUMBNAIL_MODE:
+        if item.filetype == int(FileType.Video):
+            widget = VlcVideoWidget()
+            widget.setFixedSize(new_width, new_height)
+            widget.set_media(item.getpath())
+            widget.play()
+            widget.mousePressEvent = lambda event, item_id=item_id: start_file(item_id)
+            self._video_widgets.append(widget)
+        elif THUMBNAIL_MODE:
             resized_image = get_thumbnail(item.id, new_width, new_height)
         else:
             resized_image = get_thumbnail(item.id, new_width, new_height)
 
-        qimage = ImageQt.ImageQt(resized_image)
-        pixmap = QtGui.QPixmap.fromImage(qimage)
-        pixmap = pixmap.scaled(
-            new_width,
-            new_height,
-            QtCore.Qt.KeepAspectRatio,
-            QtCore.Qt.SmoothTransformation,
-        )
+        if item.filetype != int(FileType.Video):
+            qimage = ImageQt.ImageQt(resized_image)
+            pixmap = QtGui.QPixmap.fromImage(qimage)
+            pixmap = pixmap.scaled(
+                new_width,
+                new_height,
+                QtCore.Qt.KeepAspectRatio,
+                QtCore.Qt.SmoothTransformation,
+            )
 
-        if item.filetype == int(FileType.Image):
-            widget = QtWidgets.QPushButton()
-            widget.setIcon(QtGui.QIcon(pixmap))
-            widget.setIconSize(pixmap.size())
-            widget.clicked.connect(partial(start_file, item.id))
-            widget.setFlat(True)
-            widget.setStyleSheet("border: none;")
-        else:
-            widget = QtWidgets.QLabel()
-            widget.setPixmap(pixmap)
-            widget.setStyleSheet("background-color: #1C1D21; border: none;")
+            if item.filetype == int(FileType.Image):
+                widget = QtWidgets.QPushButton()
+                widget.setIcon(QtGui.QIcon(pixmap))
+                widget.setIconSize(pixmap.size())
+                widget.clicked.connect(partial(start_file, item.id))
+                widget.setFlat(True)
+                widget.setStyleSheet("border: none;")
+            else:
+                widget = QtWidgets.QLabel()
+                widget.setPixmap(pixmap)
+                widget.setStyleSheet("background-color: #1C1D21; border: none;")
 
         widget.setStyleSheet("background-color: #1C1D21; border: none;")
         frame_layout.addWidget(widget, 1)
@@ -216,6 +326,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         frame_layout.addLayout(label_row, 0)
 
     def load_items(self):
+        self._clear_video_players()
         self._clear_layout(self.left_layout)
         self._clear_layout(self.right_layout)
 
@@ -255,9 +366,15 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.load_items()
 
     def closeEvent(self, event):
+        self._clear_video_players()
         if not self.completed:
             self.window_closed_manually = True
         super().closeEvent(event)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.item_id is not None:
+            self._resize_timer.start(100)
 
 
 def start_clip_application():
