@@ -235,11 +235,7 @@ class ClipApplication(QtWidgets.QMainWindow):
             self.approve(self.item_id)
             return
 
-        if (
-            self._last_item_id != self.item_id
-            and self._last_nearest_item_id != self.nearest_item_id
-        ):
-            self.swap = False
+        self.swap = False
 
         self._last_item_id = self.item_id
         self._last_nearest_item_id = self.nearest_item_id

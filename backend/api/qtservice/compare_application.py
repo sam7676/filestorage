@@ -132,7 +132,7 @@ class CompareApplication(QtWidgets.QMainWindow):
         self.scroll_layout = QtWidgets.QHBoxLayout(self.scroll_contents)
         self.scroll_layout.setContentsMargins(0, 0, 0, 0)
         self.scroll_layout.setSpacing(0)
-        self.scroll_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.scroll_layout.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         self.scroll_area.setWidget(self.scroll_contents)
         self.scroll_contents.setStyleSheet("background-color: #1C1D21;")
 
@@ -259,25 +259,41 @@ class CompareApplication(QtWidgets.QMainWindow):
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
         )
 
-        remove_button = QtWidgets.QPushButton(f"  {item_id} ⨯  ")
+        footer = QtWidgets.QWidget()
+        footer_layout = QtWidgets.QHBoxLayout(footer)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.setSpacing(6)
+        footer_layout.setAlignment(QtCore.Qt.AlignCenter)
+
+        id_label = QtWidgets.QLabel(str(item_id))
+        id_label.setAlignment(QtCore.Qt.AlignCenter)
+        id_label.setStyleSheet(
+            "color: #FF6666; background-color: #1C1D21; font-weight: bold; font-size: 16px;"
+        )
+        id_label.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
+
+        remove_button = QtWidgets.QPushButton("⨯")
         remove_button.clicked.connect(partial(self.remove_item, item_id))
         remove_button.setFlat(True)
         remove_button.setStyleSheet(
             "border: none; padding: 2px 6px; margin: 0; color: #FF6666; background-color: #1C1D21; font-weight: bold; font-size: 16px;"
-            if not is_main
-            else "border: none; padding: 2px 6px; margin: 0; color: #FF6666; background-color: #1C1D21; font-weight: bold; font-size: 16px;"
         )
         remove_button.setSizePolicy(
             QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
         )
         remove_button.setMinimumWidth(0)
-        remove_button.setMaximumWidth(media_width)
+
+        footer_layout.addWidget(id_label)
+        footer_layout.addWidget(remove_button)
+        footer.setMaximumWidth(media_width)
 
         card_layout.addWidget(
             image_container, 1, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
         )
         card_layout.addWidget(
-            remove_button, 0, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignBottom
+            footer, 0, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignBottom
         )
 
         return card
