@@ -7,9 +7,15 @@ import { useTheme } from '@mui/material/styles';
 const providers = [{ id: 'credentials', name: 'Email and Password' }];
 // preview-end
 
-
-
-export default function CredentialsSignInPage(signIn: ((provider: AuthProvider, formData?: any, callbackUrl?: string) => void | Promise<AuthResponse> | undefined) | undefined) {
+export default function CredentialsSignInPage(
+  signIn:
+    | ((
+        provider: AuthProvider,
+        formData?: any,
+        callbackUrl?: string,
+      ) => void | Promise<AuthResponse> | undefined)
+    | undefined,
+) {
   const theme = useTheme();
   return (
     // preview-start
