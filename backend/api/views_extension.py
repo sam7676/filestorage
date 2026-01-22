@@ -528,14 +528,13 @@ def upload_video(video_object):
         print(f"Warning: videeo uploaded with unrecognised type: {type(video_object)}")
 
     video = VideoFileClip(old_path)
-
-    state = int(FileState.NeedsLabel)
-    width, height = get_dimensions(video)
-
-    filetype = int(FileType.Video)
-    label = ""
-
-    video.close()
+    try:
+        state = int(FileState.NeedsLabel)
+        width, height = get_dimensions(video)
+        filetype = int(FileType.Video)
+        label = ""
+    finally:
+        video.close()
 
     item = create_item(
         label=label, state=state, width=width, filetype=filetype, height=height
@@ -634,12 +633,12 @@ def get_thumbnail(item_id, width=DEFAULT_THUMBNAIL_SIZE, height=DEFAULT_THUMBNAI
 
     elif item.filetype == int(FileType.Video):
         clip = VideoFileClip(item.getpath())
-
-        frame = clip.get_frame(0.5)
-        image = Image.fromarray(frame)
-        image.thumbnail((width, height))
-
-        clip.close()
+        try:
+            frame = clip.get_frame(0.5)
+            image = Image.fromarray(frame)
+            image.thumbnail((width, height))
+        finally:
+            clip.close()
 
     return image
 

@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
     /* config options here */
     devIndicators: false,
+    experimental: {
+        middlewareClientMaxBodySize: 100 * 1024 * 1024,
+    },
     rewrites: async () => {
         return [
             {
