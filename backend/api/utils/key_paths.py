@@ -5,7 +5,15 @@ load_dotenv()
 
 MEDIA_PATH = os.getenv("MEDIA_PATH")
 DATABASE_PATH = os.getenv("DATABASE_PATH")
-DROPBOX_PATH = os.getenv("DROPBOX_PATH")
+
+
+def _split_paths(value):
+    if not value:
+        return []
+    return [path.strip() for path in value.split(os.pathsep) if path.strip()]
+
+
+READER_PATHS = _split_paths(os.getenv("READER_PATHS"))
 
 CERT_PATH = os.getenv("CERT_PATH")
 KEY_FILE_PATH = os.getenv("KEY_FILE_PATH")
