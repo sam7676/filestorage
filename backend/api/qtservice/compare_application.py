@@ -292,9 +292,7 @@ class CompareApplication(QtWidgets.QMainWindow):
         card_layout.addWidget(
             image_container, 1, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
         )
-        card_layout.addWidget(
-            footer, 0, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignBottom
-        )
+        card_layout.addWidget(footer, 0, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignBottom)
 
         return card
 
