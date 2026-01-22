@@ -192,9 +192,7 @@ class RandomItem(APIView):
 
                 item_values = list(items.values())
                 class_sizes = Counter(item["label"] for item in item_values)
-                weights = [
-                    class_sizes[item["label"]] ** (-0.5) for item in item_values
-                ]
+                weights = [class_sizes[item["label"]] ** (-0.5) for item in item_values]
 
             elif random_selection_method == "dense":
                 # Assign larger weights to items from large classes
