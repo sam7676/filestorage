@@ -16,10 +16,12 @@ def _make_image(tmp_path: Path) -> str:
 
 @pytest.fixture
 def label_window(tmp_path, monkeypatch, qtbot):
-    image_path = _make_image(tmp_path)
+    _make_image(tmp_path)
     monkeypatch.setattr(label_app, "get_top_x_unlabelled_ids", lambda *a, **k: [1])
     monkeypatch.setattr(label_app, "get_all_labels", lambda *a, **k: [{"label": "cat"}])
-    monkeypatch.setattr(label_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10)))
+    monkeypatch.setattr(
+        label_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
+    )
     monkeypatch.setattr(label_app, "edit_item", lambda *a, **k: None)
 
     window = label_app.LabelApplication()

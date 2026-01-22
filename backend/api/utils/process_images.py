@@ -51,7 +51,7 @@ def get_bounds(image):
                 person_bounds.append((x1, x2, y1, y2))
             else:
                 other_bounds.append((x1, x2, y1, y2))
-    
+
     return person_bounds + other_bounds
 
 

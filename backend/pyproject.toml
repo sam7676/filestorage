@@ -50,6 +50,7 @@ dev = [
     "ty>=0.0.12",
     "pytest>=8.0.0",
     "pytest-qt>=4.4.0",
+    "ruff>=0.6.0",
 ]
 
 [tool.pytest.ini_options]

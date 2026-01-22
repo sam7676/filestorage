@@ -9,7 +9,6 @@ class Command(RunserverPlusCommand):
     started = False
 
     def inner_run(self, *args, **options):
-        
         args[0]["cert_path"] = CERT_PATH
         args[0]["key_file_path"] = KEY_FILE_PATH
         args[0]["use_reloader"] = False

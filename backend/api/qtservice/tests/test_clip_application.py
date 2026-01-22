@@ -6,7 +6,9 @@ from api.qtservice import clip_application as clip_app
 
 
 class _FakeItem:
-    def __init__(self, item_id, label="cat", filetype=FileType.Image, width=80, height=40):
+    def __init__(
+        self, item_id, label="cat", filetype=FileType.Image, width=80, height=40
+    ):
         self.id = item_id
         self.label = label
         self.filetype = int(filetype)
@@ -37,7 +39,9 @@ def clip_window(monkeypatch, qtbot):
 
     monkeypatch.setattr(clip_app, "get_next_clip_item", lambda *a, **k: 1)
     monkeypatch.setattr(clip_app, "get_nearest_item", lambda *a, **k: 2)
-    monkeypatch.setattr(clip_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10)))
+    monkeypatch.setattr(
+        clip_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
+    )
     monkeypatch.setattr(clip_app, "edit_item", lambda *a, **k: None)
     monkeypatch.setattr(clip_app, "delete_items", lambda *a, **k: None)
     monkeypatch.setattr(clip_app, "start_file", lambda *a, **k: None)
@@ -63,9 +67,13 @@ def test_choose_left_deletes_right(monkeypatch, clip_window):
 
 def test_nearest_missing_auto_approves(monkeypatch, qtbot):
     items_iter = iter([1, None])
-    monkeypatch.setattr(clip_app, "get_next_clip_item", lambda *a, **k: next(items_iter))
+    monkeypatch.setattr(
+        clip_app, "get_next_clip_item", lambda *a, **k: next(items_iter)
+    )
     monkeypatch.setattr(clip_app, "get_nearest_item", lambda *a, **k: -1)
-    monkeypatch.setattr(clip_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10)))
+    monkeypatch.setattr(
+        clip_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
+    )
     approved = []
     monkeypatch.setattr(clip_app, "edit_item", lambda **kwargs: approved.append(kwargs))
 
