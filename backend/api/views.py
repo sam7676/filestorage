@@ -20,8 +20,9 @@ from api.views_extension import (
     TAG_STYLE_OPTIONS,
 )
 from api.models import FileState, FileType
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponseBadRequest
 from api.utils.overrides import override_random_item
+from collections import Counter
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):
@@ -129,10 +130,10 @@ class RandomItem(APIView):
     def post(self, request):
         try:
             filetype = request.data.get("type")
-
             tags_data = request.data.get("tags")
 
             tags = defaultdict(list)
+            random_selection_method = "uniform"
 
             for tag in tags_data:
                 name = tag["name"].strip().lower()
@@ -165,12 +166,45 @@ class RandomItem(APIView):
                 # On the "play" keyword we start auto-queueing images
                 elif k[0] == "play":
                     tags.pop(k)
+                elif k[0] == "random":
+                    tags.pop(k)
+                    random_selection_method = v[0]
 
             items = get_items_and_paths_from_tags(tags)
 
             keys = list(items.keys())
 
-            random_id = random.choice(keys)
+            if len(keys) == 0:
+                return HttpResponseBadRequest("No IDs match the given criteria.")
+
+            weights = [1 for _ in range(len(keys))]
+
+            if random_selection_method == "recent":
+                # Take 10,000 items
+                # The most recent has score 1/5000
+                # The least recent has score 1/15000 - a 3x decrease
+
+                weights = [1 / (3 * len(keys) / 2 - i) for i in range(len(keys))]
+
+            elif random_selection_method == "sparse":
+                # Want to assign smaller weights to items from large classes
+                # Use 1/sqrt(x) for this
+
+                item_values = list(items.values())
+                class_sizes = Counter(item["label"] for item in item_values)
+                weights = [
+                    class_sizes[item["label"]] ** (-0.5) for item in item_values
+                ]
+
+            elif random_selection_method == "dense":
+                # Assign larger weights to items from large classes
+                # Use sqrt(x) for this
+
+                item_values = list(items.values())
+                class_sizes = Counter(item["label"] for item in item_values)
+                weights = [class_sizes[item["label"]] ** 0.5 for item in item_values]
+
+            random_id = random.choices(keys, weights=weights, k=1)[0]
 
             item_info = items[random_id]
 
