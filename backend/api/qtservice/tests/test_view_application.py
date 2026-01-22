@@ -1,7 +1,7 @@
 from PIL import Image
 import pytest
 
-from api.models import FileType, FileState
+from api.models import FileType
 from api.qtservice import view_application as view_app
 from PySide6 import QtWidgets
 
@@ -72,3 +72,44 @@ def test_modify_mode_gates_actions(view_window):
     view_window.load_items()
     buttons = view_window.items_scroll_contents.findChildren(QtWidgets.QPushButton)
     assert any(not b.isEnabled() for b in buttons)
+
+
+def test_videos_currently_played_limits_playback(monkeypatch, qtbot):
+    items = [
+        _FakeItem(1, filetype=FileType.Video),
+        _FakeItem(2, filetype=FileType.Video),
+    ]
+    manager = _FakeManager(items)
+
+    monkeypatch.setattr(
+        view_app, "get_items_and_paths_from_tags", lambda *a, **k: {1: {}, 2: {}}
+    )
+    monkeypatch.setattr(view_app, "get_tags", lambda *a, **k: {"label": ["cat"]})
+    monkeypatch.setattr(view_app, "get_tag", lambda *a, **k: 1)
+    monkeypatch.setattr(
+        view_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
+    )
+    monkeypatch.setattr(view_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(view_app, "edit_item", lambda *a, **k: None)
+
+    class _FakeItemModel:
+        objects = manager
+
+    monkeypatch.setattr(view_app, "Item", _FakeItemModel)
+
+    window = view_app.ViewApplication()
+    qtbot.addWidget(window)
+    window.orderby_metric = "id"
+    window.videos_currently_played = 1
+    window.get_ids_and_build_bins()
+
+    calls = []
+
+    def _fake_get_widget(item_id, force_thumbnail=False):
+        calls.append((item_id, force_thumbnail))
+        return QtWidgets.QLabel()
+
+    window.get_widget = _fake_get_widget
+    window.load_items()
+
+    assert calls == [(1, False), (2, True)]

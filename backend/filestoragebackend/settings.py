@@ -171,7 +171,6 @@ SESSION_COOKIE_SAMESITE = "None"  # or "None" if cross-site
 
 RUNSERVER_PLUS_EXCLUDE_PATTERNS = [
     "api/management/commands/*",
-    "api/tkservice/*",
     "api/qtservice/*",
     ".venv/*",
     "*__pycache__/*",
