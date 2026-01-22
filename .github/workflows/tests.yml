@@ -4,12 +4,44 @@ on:
   pull_request:
 
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.cache/pip
+          key: uv-${{ runner.os }}-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync
+
+      - name: Ruff format check
+        working-directory: backend
+        run: uv run ruff format --check .
+
   test:
     runs-on: ubuntu-latest
     env:
       MEDIA_PATH: ${{ github.workspace }}/.ci/media
       DATABASE_PATH: ${{ github.workspace }}/.ci/database.sqlite3
-      DROPBOX_PATH: ${{ github.workspace }}/.ci/dropbox
+      READER_PATHS: ${{ github.workspace }}/.ci/reader
       CERT_PATH: selftest_cert
       KEY_FILE_PATH: selftest_key
       DJANGO_SECRET_KEY: ci-secret-key
@@ -57,15 +89,11 @@ jobs:
       - name: Prepare CI paths
         run: |
           mkdir -p .ci/media
-          mkdir -p .ci/dropbox
+          mkdir -p .ci/reader
 
       - name: Backend setup.py
         working-directory: backend
         run: python setup.py
-
-      - name: Ruff format check
-        working-directory: backend
-        run: uv run ruff format --check .
 
       - name: Run backend + Qt tests
         working-directory: backend

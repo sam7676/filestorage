@@ -20,6 +20,7 @@ cd backend
 uv run setup.py
 uv run manage.py setup
 ```
+Set `READER_PATHS` in `.env` to one or more ingest directories separated by your OS path separator (Windows `;`, Linux/macOS `:`).
 
 Frontend set-up
 ```

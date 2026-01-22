@@ -3,7 +3,7 @@ import os
 required_env_variables = """
 MEDIA_PATH=
 DATABASE_PATH=
-DROPBOX_PATH=
+READER_PATHS=
 CERT_PATH='selftest_cert'
 KEY_FILE_PATH='selftest_key'
 DJANGO_SECRET_KEY='delete_this_insecure_key'

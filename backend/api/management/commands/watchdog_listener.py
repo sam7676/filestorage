@@ -10,7 +10,7 @@ from api.models import (
     try_get_item,
     FileState,
 )
-from api.utils.key_paths import MEDIA_PATH, DROPBOX_PATH
+from api.utils.key_paths import MEDIA_PATH, READER_PATHS
 from threading import Lock
 from api.views_extension import edit_item, get_dimensions, upload_item
 from api.management.commands.cleandb import clean_db
@@ -192,25 +192,21 @@ class MyEventHandler(FileSystemEventHandler):
             )
 
 
-def preprocess_watchdog_listener(
-    directories=[
-        DROPBOX_PATH,
-        MEDIA_PATH,
-    ],
-):
-    # Add initial changes (unprocessed, dropbox)
+def preprocess_watchdog_listener(directories=None):
+    if directories is None:
+        directories = [*READER_PATHS, MEDIA_PATH]
+    directories = [path for path in directories if path]
+    # Add initial changes (unprocessed, media paths)
     for directory in directories:
         read_directory(directory)
 
     clean_db()
 
 
-def run_watchdog_listener(
-    directories=[
-        DROPBOX_PATH,
-        MEDIA_PATH,
-    ],
-):
+def run_watchdog_listener(directories=None):
+    if directories is None:
+        directories = [*READER_PATHS, MEDIA_PATH]
+    directories = [path for path in directories if path]
     processor = EventProcessor()
     event_handler = MyEventHandler(processor)
 
