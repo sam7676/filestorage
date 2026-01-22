@@ -10,10 +10,10 @@ from api.qtservice.crop_application import start_crop_application
 from api.qtservice.label_application import start_label_application
 from api.qtservice.tag_application import start_tag_application
 from api.qtservice.multitag_application import start_multitag_application
-from api.tkservice.view_application import start_view_application
+from api.qtservice.view_application import start_view_application
 from api.qtservice.modify_application import start_modify_application
 from api.qtservice.clip_application import start_clip_application
-from api.tkservice.compare_application import start_compare_application
+from api.qtservice.compare_application import start_compare_application
 
 from functools import partial
 from threading import Thread
@@ -40,7 +40,7 @@ def qtservice():
     while command != "exit":
         command = (
             input(
-                "Enter command:\n1: Process media\n2: Clip application\n3: Tag application\n4: Compare application\n5: Viewer application\nEnter: "
+                "Enter command:\n1: Process media\n2: Clip application\n3: Tag application\n4: Compare application\n5: Viewer application\n+: "
             )
             .lower()
             .strip()

@@ -16,12 +16,14 @@ from functools import partial
 from collections import defaultdict
 import random
 import os
+from api.utils.overrides import get_view_default_tags
 
 PAGE_WIDTH = 1100
 PAGE_HEIGHT = 700
 
 
 SORT_METRIC_OPTIONS = ("alphabetical", "random")
+VIDEOS_CURRENTLY_PLAYED = 2
 
 MODIFY_ITEMS_PAD_H = 16
 MODIFY_ITEMS_MIN_W = 108
@@ -44,6 +46,7 @@ class ViewApp:
         self.items_per_window = 2
         self.page_increment_rate = 1
         self.max_bin_videos = 1
+        self.videos_currently_played = VIDEOS_CURRENTLY_PLAYED
 
         self.item_ids = []
         self.id_data = {}
@@ -74,13 +77,7 @@ class ViewApp:
         # (item_id, VideoPlayer)
         self.clear_video_players_set = set()
 
-        self.chosen_tags = {
-            ("state", "needsclip"): TagConditions.Is.value,
-            ("state", "needstags"): TagConditions.Is.value,
-            ("state", "complete"): TagConditions.Is.value,
-            ("source", "internal"): TagConditions.IsNot.value,
-            ("_", "_"): TagConditions.Is.value,
-        }
+        self.chosen_tags = get_view_default_tags()
 
         self.item_frame = tk.Frame()
         self.tag_frame = tk.Frame()
@@ -130,13 +127,14 @@ class ViewApp:
             else:
                 self.decrement_page()
 
-    def get_widget(self, frame, item_id):
+    def get_widget(self, frame, item_id, force_thumbnail=False):
         if "video_player" in self.id_data[item_id]:
             self.id_data[item_id].pop("video_player")
 
         item = Item.objects.filter(id=item_id).get()
 
         new_width, new_height = self.get_new_size(item.width, item.height)
+        use_thumbnail = self.thumbnail_mode or force_thumbnail
 
         if item.filetype == int(FileType.Image):
             image = Image.open(item.getpath())
@@ -150,7 +148,7 @@ class ViewApp:
             return label
 
         elif item.filetype == int(FileType.Video):
-            if not self.thumbnail_mode:
+            if not use_thumbnail:
                 label = tk.Label(master=frame, width=new_width)
 
                 player = tkvideo(
@@ -272,6 +270,7 @@ class ViewApp:
                 "height": new_height,
                 "metric": metric,
                 "bin": bin_obj,
+                "filetype": item_type,
             }
 
         if self.sort_metric_option == "alphabetical":
@@ -321,6 +320,7 @@ class ViewApp:
         # Build out our X rows
         # Place the bins accordingly on the rows
 
+        videos_started = 0
         for r in range(self.items_per_window):
             row_frame = tk.Frame(master=self.row_frame)
             row_frame.grid(row=r, column=0)
@@ -404,7 +404,20 @@ class ViewApp:
                 open_button.grid(row=0, column=4)
                 print_button.grid(row=0, column=5)
 
-                tk_label = self.get_widget(tk_label_frame, item_id)
+                item_type = self.id_data[item_id]["filetype"]
+                force_thumbnail = False
+                if (
+                    item_type == int(FileType.Video)
+                    and not self.thumbnail_mode
+                    and self.videos_currently_played > 0
+                    and videos_started >= self.videos_currently_played
+                ):
+                    force_thumbnail = True
+                tk_label = self.get_widget(
+                    tk_label_frame, item_id, force_thumbnail=force_thumbnail
+                )
+                if item_type == int(FileType.Video) and not force_thumbnail:
+                    videos_started += 1
 
                 tk_label.grid(row=1, column=0)
 
@@ -504,6 +517,13 @@ class ViewApp:
                 self.max_bin_videos,
                 self.update_video_bin_count,
                 self.max_bin_videos if self.max_bin_videos > 0 else "",
+            ),
+            (
+                "Videos at once",
+                self.modify_videos_currently_played,
+                self.videos_currently_played,
+                self.update_videos_currently_played,
+                self.videos_currently_played if self.videos_currently_played > 0 else "",
             ),
         )
 
@@ -821,6 +841,16 @@ class ViewApp:
         self.max_bin_videos = value
         self.rebuild_and_reset()
 
+    def update_videos_currently_played(self, entry, event=None):
+        if entry.get().isnumeric():
+            value = int(entry.get())
+            value = max(0, value)
+        else:
+            value = 0
+
+        self.videos_currently_played = value
+        self.reset_items()
+
     def modify_page_increment(self, change, event=None):
         self.page_increment_rate = max(1, self.page_increment_rate + change)
         self.rebuild_and_reset()
@@ -828,6 +858,10 @@ class ViewApp:
     def modify_video_bin_count(self, change, event=None):
         self.max_bin_videos = max(0, self.max_bin_videos + change)
         self.rebuild_and_reset()
+
+    def modify_videos_currently_played(self, change, event=None):
+        self.videos_currently_played = max(0, self.videos_currently_played + change)
+        self.reset_items()
 
     def update_bin_group_metric(self, bin_group_metric_entry, event=None):
         self.bin_group_metric = bin_group_metric_entry.get()

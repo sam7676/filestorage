@@ -11,6 +11,79 @@ import os
 
 from PIL import Image, ImageQt
 from PySide6 import QtCore, QtGui, QtWidgets
+import vlc
+
+
+VIDEOS_CURRENTLY_PLAYED = 2
+
+
+class VlcVideoWidget(QtWidgets.QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_NativeWindow)
+        self.setStyleSheet("background-color: #1C1D21;")
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
+        self._instance = vlc.Instance(
+            [
+                "--no-audio",
+                "--no-video-title-show",
+                "--avcodec-hw=any",
+                "--quiet",
+            ]
+        )
+        self._player = self._instance.media_player_new()
+        self._media = None
+        self._is_bound = False
+        self._loop = True
+        self._event_manager = self._player.event_manager()
+        self._event_manager.event_attach(
+            vlc.EventType.MediaPlayerEndReached, self._on_end
+        )
+
+    def bind_player(self):
+        if self._is_bound:
+            return
+        handle = int(self.winId())
+        system = QtCore.QSysInfo.productType()
+        if system == "windows":
+            self._player.set_hwnd(handle)
+        elif system == "osx":
+            self._player.set_nsobject(handle)
+        else:
+            self._player.set_xwindow(handle)
+        self._is_bound = True
+
+    def set_media(self, path, loop=True):
+        self.bind_player()
+        self._media = self._instance.media_new(path)
+        self._loop = loop
+        if loop:
+            self._media.add_option("input-repeat=65535")
+        self._player.set_media(self._media)
+        self._player.audio_set_mute(True)
+        self._player.video_set_scale(0)
+        self._player.video_set_aspect_ratio("")
+
+    def play(self):
+        if self._media:
+            self._player.play()
+
+    def stop(self):
+        self._player.stop()
+
+    def _on_end(self, event):
+        if self._loop:
+            self._player.stop()
+            self._player.play()
+
+    def close(self):
+        try:
+            self.stop()
+        finally:
+            self._player.release()
+            self._instance.release()
 
 
 class CompareApplication(QtWidgets.QMainWindow):
@@ -21,6 +94,7 @@ class CompareApplication(QtWidgets.QMainWindow):
 
         self.item = None
         self.comparison_item_ids = []
+        self.video_widgets = {}
 
         self.setWindowTitle("Compare")
         screen = QtGui.QGuiApplication.primaryScreen()
@@ -35,6 +109,7 @@ class CompareApplication(QtWidgets.QMainWindow):
             self.resize(1500, 900)
             self.max_height_in_crop = 760
             self.max_width_of_crop = 900
+        self.min_height_in_crop = min(self.max_height_in_crop, 160)
 
         self._build_ui()
         self._apply_dark_theme()
@@ -48,8 +123,8 @@ class CompareApplication(QtWidgets.QMainWindow):
         self.setCentralWidget(root)
 
         layout = QtWidgets.QVBoxLayout(root)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         self.scroll_area = QtWidgets.QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -59,6 +134,7 @@ class CompareApplication(QtWidgets.QMainWindow):
         self.scroll_layout = QtWidgets.QHBoxLayout(self.scroll_contents)
         self.scroll_layout.setContentsMargins(0, 0, 0, 0)
         self.scroll_layout.setSpacing(0)
+        self.scroll_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.scroll_area.setWidget(self.scroll_contents)
         self.scroll_contents.setStyleSheet("background-color: #1C1D21;")
 
@@ -68,9 +144,7 @@ class CompareApplication(QtWidgets.QMainWindow):
 
         layout.addWidget(self.scroll_area, 1)
         next_row = QtWidgets.QHBoxLayout()
-        next_row.addStretch(1)
         next_row.addWidget(self.next_button)
-        next_row.addStretch(1)
         layout.addLayout(next_row, 0)
 
         QtGui.QShortcut(QtGui.QKeySequence("Return"), self, activated=self.next)
@@ -105,41 +179,26 @@ class CompareApplication(QtWidgets.QMainWindow):
             if widget:
                 widget.deleteLater()
 
-    def _pad_thumbnail(self, thumbnail, target_width, target_height):
-        if thumbnail.height > target_height:
+    def _clear_video_players(self):
+        for widget in list(self.video_widgets.values()):
+            widget.close()
+        self.video_widgets = {}
+
+    def _resize_thumbnail(self, thumbnail, target_height):
+        resample = getattr(Image, "Resampling", Image).LANCZOS
+        if thumbnail.height != target_height:
             scale = target_height / thumbnail.height
-            resample = getattr(Image, "Resampling", Image).LANCZOS
             new_size = (
                 max(1, int(thumbnail.width * scale)),
                 max(1, int(thumbnail.height * scale)),
             )
             thumbnail = thumbnail.resize(new_size, resample=resample)
-        canvas = Image.new("RGB", (target_width, target_height), (28, 29, 33))
-        y = max(0, (target_height - thumbnail.height) // 2)
-        canvas.paste(thumbnail, (0, y))
-        return canvas
+        return thumbnail
 
-    def _build_card(self, item_id, is_main=False, max_width=None):
+    def _build_card(self, item_id, target_height, allow_video, is_main=False):
         item = Item.objects.filter(id=item_id).get()
-        width_cap = self.max_width_of_crop if max_width is None else max_width
-        max_height = self.max_height_in_crop
-        new_width = max(1, int(width_cap))
-        new_height = max(1, int(item.height * new_width / item.width))
-        if new_height > max_height:
-            new_height = max(1, int(max_height))
-            new_width = max(1, int(item.width * new_height / item.height))
-
-        if item.filetype == int(FileType.Image):
-            resized_image = get_thumbnail(item.id, new_width, new_height)
-        else:
-            resized_image = get_thumbnail(item.id, new_width, new_height)
-
-        resized_image = self._pad_thumbnail(
-            resized_image, new_width, self.max_height_in_crop
-        )
-
-        qimage = ImageQt.ImageQt(resized_image)
-        pixmap = QtGui.QPixmap.fromImage(qimage)
+        new_height = max(1, int(target_height))
+        new_width = max(1, int(item.width * new_height / item.height))
 
         card = QtWidgets.QFrame()
         card.setFrameShape(QtWidgets.QFrame.NoFrame)
@@ -147,46 +206,64 @@ class CompareApplication(QtWidgets.QMainWindow):
         card_layout.setContentsMargins(0, 0, 0, 0)
         card_layout.setSpacing(0)
 
-        image_button = QtWidgets.QPushButton()
-        image_button.setIcon(QtGui.QIcon(pixmap))
-        image_button.setIconSize(pixmap.size())
-        image_button.clicked.connect(partial(self.open_item, item_id))
-        image_button.setFlat(True)
-        image_button.setStyleSheet(
-            "border: none; background-color: #1C1D21; padding: 0; margin: 0;"
-        )
-        image_button.setSizePolicy(
-            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-        )
-        image_button.setFixedSize(pixmap.size())
-
         image_container = QtWidgets.QWidget()
         image_container_layout = QtWidgets.QVBoxLayout(image_container)
         image_container_layout.setContentsMargins(0, 0, 0, 0)
-        image_container_layout.addStretch(1)
-        image_container_layout.addWidget(
-            image_button, 0, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter
-        )
-        image_container_layout.addStretch(1)
-        image_container.setFixedHeight(self.max_height_in_crop)
+        if item.filetype == int(FileType.Video) and allow_video:
+            video_widget = VlcVideoWidget()
+            video_widget.setFixedSize(new_width, new_height)
+            video_widget.set_media(item.getpath())
+            video_widget.play()
+            video_widget.mousePressEvent = lambda event, item_id=item_id: self.open_item(
+                item_id
+            )
+            image_container_layout.addWidget(
+                video_widget, 0, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+            )
+            self.video_widgets[item_id] = video_widget
+            media_width = new_width
+        else:
+            resized_image = get_thumbnail(item.id, new_width, new_height)
+            resized_image = self._resize_thumbnail(resized_image, new_height)
+            qimage = ImageQt.ImageQt(resized_image)
+            pixmap = QtGui.QPixmap.fromImage(qimage)
+            image_button = QtWidgets.QPushButton()
+            image_button.setIcon(QtGui.QIcon(pixmap))
+            image_button.setIconSize(pixmap.size())
+            image_button.clicked.connect(partial(self.open_item, item_id))
+            image_button.setFlat(True)
+            image_button.setStyleSheet(
+                "border: none; background-color: #1C1D21; padding: 0; margin: 0;"
+            )
+            image_button.setSizePolicy(
+                QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+            )
+            image_button.setFixedSize(pixmap.size())
+            image_container_layout.addWidget(
+                image_button, 0, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+            )
+            media_width = pixmap.width()
+        image_container.setFixedHeight(new_height)
         image_container.setSizePolicy(
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
         )
 
-        remove_button = QtWidgets.QPushButton(f"{item_id} X")
+        remove_button = QtWidgets.QPushButton(f"  {item_id} ⨯  ")
         remove_button.clicked.connect(partial(self.remove_item, item_id))
         remove_button.setFlat(True)
         remove_button.setStyleSheet(
-            "border: none; padding: 0; margin: 0; color: #000000; background-color: #FFFFFF;"
+            "border: none; padding: 2px 6px; margin: 0; color: #FF6666; background-color: #1C1D21; font-weight: bold; font-size: 16px;"
             if not is_main
-            else "border: none; padding: 0; margin: 0; color: #2EA8FF; background-color: #FFFFFF;"
+            else "border: none; padding: 2px 6px; margin: 0; color: #FF6666; background-color: #1C1D21; font-weight: bold; font-size: 16px;"
         )
         remove_button.setSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
         )
+        remove_button.setMinimumWidth(0)
+        remove_button.setMaximumWidth(media_width)
 
         card_layout.addWidget(
-            image_container, 1, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter
+            image_container, 1, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
         )
         card_layout.addWidget(
             remove_button, 0, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignBottom
@@ -195,6 +272,7 @@ class CompareApplication(QtWidgets.QMainWindow):
         return card
 
     def load_items(self):
+        self._clear_video_players()
         self._clear_layout(self.scroll_layout)
 
         viewport_width = self.scroll_area.viewport().width()
@@ -203,30 +281,49 @@ class CompareApplication(QtWidgets.QMainWindow):
             QtCore.QTimer.singleShot(0, self.load_items)
             return
 
-        main_width = 0
+        target_height = self.max_height_in_crop
+        cards = []
+        total_width = 0
+        items = []
         if self.item:
-            main_width = min(
-                int(round(self.item.width * self.max_height_in_crop / self.item.height)),
-                self.max_width_of_crop,
+            items.append((self.item.id, self.item, True))
+        for item_id in self.comparison_item_ids:
+            items.append((item_id, Item.objects.filter(id=item_id).get(), False))
+
+        for item_id, item, is_main in items:
+            width_at_h = max(1, int(item.width * target_height / item.height))
+            gap = spacing if cards else 0
+            if total_width + gap + width_at_h <= viewport_width:
+                cards.append((item_id, target_height, is_main))
+                total_width += gap + width_at_h
+                continue
+
+            remaining = viewport_width - total_width - gap - 2
+            if remaining <= 0:
+                break
+            target_height_last = max(1, int(target_height * 0.8))
+            width_at_last = max(
+                1, int(item.width * target_height_last / item.height)
+            )
+            if (
+                target_height_last >= self.min_height_in_crop
+                and width_at_last <= remaining
+            ):
+                cards.append((item_id, target_height_last, is_main))
+            break
+
+        videos_started = 0
+        for item_id, height, is_main in cards:
+            item_type = Item.objects.filter(id=item_id).get().filetype
+            allow_video = (
+                item_type == int(FileType.Video)
+                and videos_started < VIDEOS_CURRENTLY_PLAYED
             )
             self.scroll_layout.addWidget(
-                self._build_card(self.item.id, is_main=True, max_width=main_width)
+                self._build_card(item_id, height, allow_video, is_main=is_main)
             )
-
-        available = max(0, viewport_width - main_width - spacing)
-        card_width = self.max_width_of_crop
-        full_items = 0
-        if card_width + spacing > 0:
-            full_items = available // (card_width + spacing)
-
-        visible_ids = self.comparison_item_ids[: full_items + 1]
-        for index, item_id in enumerate(visible_ids):
-            max_width = card_width
-            if index == len(visible_ids) - 1:
-                remaining = available - full_items * (card_width + spacing)
-                if remaining > 0:
-                    max_width = min(card_width, remaining)
-            self.scroll_layout.addWidget(self._build_card(item_id, max_width=max_width))
+            if allow_video:
+                videos_started += 1
 
         # No stretch to keep cards adjacent
 
@@ -249,6 +346,7 @@ class CompareApplication(QtWidgets.QMainWindow):
         os.startfile(Item.objects.filter(id=item_id).get().getpath())
 
     def closeEvent(self, event):
+        self._clear_video_players()
         if not self.completed:
             self.window_closed_manually = True
         super().closeEvent(event)
@@ -259,6 +357,7 @@ class CompareApplication(QtWidgets.QMainWindow):
         if viewport:
             self.max_height_in_crop = max(1, int(viewport.height() * 0.4))
             self.max_width_of_crop = max(1, int(viewport.width() * 0.4))
+            self.min_height_in_crop = min(self.max_height_in_crop, 160)
         if self.item:
             self._resize_timer.start(100)
 

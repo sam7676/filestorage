@@ -14,13 +14,14 @@ from functools import partial
 import random
 import sys
 import os
-
 from PIL import ImageQt
 from PySide6 import QtCore, QtGui, QtWidgets
 import vlc
+from api.utils.overrides import get_view_default_tags
 
 
 SORT_METRIC_OPTIONS = ("alphabetical", "random")
+VIDEOS_CURRENTLY_PLAYED = 2
 
 
 class VlcVideoWidget(QtWidgets.QFrame):
@@ -102,6 +103,7 @@ class ViewApplication(QtWidgets.QMainWindow):
         self.items_per_window = 2
         self.page_increment_rate = 1
         self.max_bin_videos = 1
+        self.videos_currently_played = VIDEOS_CURRENTLY_PLAYED
 
         self.item_ids = []
         self.id_data = {}
@@ -113,14 +115,7 @@ class ViewApplication(QtWidgets.QMainWindow):
         self.modify_mode = False
         self.thumbnail_mode = False
 
-        self.chosen_tags = {
-            ("state", "needsclip"): TagConditions.Is.value,
-            ("state", "needstags"): TagConditions.Is.value,
-            ("state", "complete"): TagConditions.Is.value,
-            ("source", "internal"): TagConditions.IsNot.value,
-            ("_", "_"): TagConditions.Is.value,
-        }
-
+        self.chosen_tags = get_view_default_tags()
         self.current_page = 0
         self.max_page = 0
         self.page_data = []
@@ -133,12 +128,11 @@ class ViewApplication(QtWidgets.QMainWindow):
             width = int(geometry.width() * 0.9)
             height = int(geometry.height() * 0.9)
             self.resize(width, height)
-            self.page_width = int(geometry.width() * 0.6)
-            self.page_height = int(geometry.height() * 0.7)
         else:
             self.resize(1500, 900)
-            self.page_width = 1100
-            self.page_height = 700
+
+        self.tag_panel_width = 380
+        self._update_page_dimensions()
 
         self._build_ui()
         self._apply_dark_theme()
@@ -157,7 +151,7 @@ class ViewApplication(QtWidgets.QMainWindow):
         self.item_panel = QtWidgets.QWidget()
         self.item_layout = QtWidgets.QVBoxLayout(self.item_panel)
         self.item_layout.setContentsMargins(0, 0, 0, 0)
-        self.item_layout.setSpacing(6)
+        self.item_layout.setSpacing(0)
 
         self.items_scroll = QtWidgets.QScrollArea()
         self.items_scroll.setWidgetResizable(True)
@@ -165,16 +159,18 @@ class ViewApplication(QtWidgets.QMainWindow):
         self.items_scroll_contents = QtWidgets.QWidget()
         self.items_scroll_layout = QtWidgets.QVBoxLayout(self.items_scroll_contents)
         self.items_scroll_layout.setContentsMargins(0, 0, 0, 0)
-        self.items_scroll_layout.setSpacing(2)
+        self.items_scroll_layout.setSpacing(0)
         self.items_scroll.setWidget(self.items_scroll_contents)
 
         self.item_layout.addWidget(self.items_scroll, 1)
+        self._build_page_controls()
+        self.item_layout.addWidget(self.page_container, 0)
 
         self.tag_panel = QtWidgets.QWidget()
         self.tag_layout = QtWidgets.QVBoxLayout(self.tag_panel)
         self.tag_layout.setContentsMargins(0, 0, 0, 0)
         self.tag_layout.setSpacing(6)
-        self.tag_panel.setMaximumWidth(360)
+        self.tag_panel.setFixedWidth(self.tag_panel_width)
 
         self.tag_scroll = QtWidgets.QScrollArea()
         self.tag_scroll.setWidgetResizable(True)
@@ -191,11 +187,15 @@ class ViewApplication(QtWidgets.QMainWindow):
         layout.addWidget(self.tag_panel, 1)
 
         QtGui.QShortcut(QtGui.QKeySequence("PgUp"), self, activated=self.decrement_page)
-        QtGui.QShortcut(QtGui.QKeySequence("PgDown"), self, activated=self.increment_page)
+        QtGui.QShortcut(
+            QtGui.QKeySequence("PgDown"), self, activated=self.increment_page
+        )
         QtGui.QShortcut(QtGui.QKeySequence("Up"), self, activated=self.decrement_page)
         QtGui.QShortcut(QtGui.QKeySequence("Down"), self, activated=self.increment_page)
         QtGui.QShortcut(QtGui.QKeySequence("Left"), self, activated=self.decrement_page)
-        QtGui.QShortcut(QtGui.QKeySequence("Right"), self, activated=self.increment_page)
+        QtGui.QShortcut(
+            QtGui.QKeySequence("Right"), self, activated=self.increment_page
+        )
 
         QtGui.QShortcut(
             QtGui.QKeySequence("Shift+Up"), self, activated=self.decrement_page_person
@@ -207,11 +207,37 @@ class ViewApplication(QtWidgets.QMainWindow):
             QtGui.QKeySequence("Shift+Left"), self, activated=self.decrement_page_person
         )
         QtGui.QShortcut(
-            QtGui.QKeySequence("Shift+Right"), self, activated=self.increment_page_person
+            QtGui.QKeySequence("Shift+Right"),
+            self,
+            activated=self.increment_page_person,
         )
 
         QtGui.QShortcut(QtGui.QKeySequence("F5"), self, activated=self.random_page)
         QtGui.QShortcut(QtGui.QKeySequence("Return"), self, activated=self.random_page)
+
+    def _build_page_controls(self):
+        page_row = QtWidgets.QHBoxLayout()
+        self.page_super_prev = QtWidgets.QPushButton("<<")
+        self.page_prev = QtWidgets.QPushButton("<")
+        self.page_current = QtWidgets.QLabel("0 / 0")
+        self.page_next = QtWidgets.QPushButton(">")
+        self.page_super_next = QtWidgets.QPushButton(">>")
+
+        self.page_super_prev.clicked.connect(self.decrement_page_person)
+        self.page_prev.clicked.connect(self.decrement_page)
+        self.page_next.clicked.connect(self.increment_page)
+        self.page_super_next.clicked.connect(self.increment_page_person)
+
+        page_row.addWidget(self.page_super_prev)
+        page_row.addWidget(self.page_prev)
+        page_row.addStretch(1)
+        page_row.addWidget(self.page_current)
+        page_row.addStretch(1)
+        page_row.addWidget(self.page_next)
+        page_row.addWidget(self.page_super_next)
+
+        self.page_container = QtWidgets.QWidget()
+        self.page_container.setLayout(page_row)
 
     def _apply_dark_theme(self):
         self.setStyleSheet(
@@ -232,8 +258,14 @@ class ViewApplication(QtWidgets.QMainWindow):
             """
         )
 
+    def _update_page_dimensions(self):
+        available_width = max(1, self.width() - self.tag_panel_width - 40)
+        available_height = max(1, self.height() - 140)
+        self.page_width = available_width
+        self.page_height = available_height
+
     def get_new_size(self, width, height):
-        new_item_height = self.page_height // self.items_per_window - 16
+        new_item_height = self.page_height // self.items_per_window
         new_width = int(round(width * new_item_height / height))
         new_height = new_item_height
         if new_width > self.page_width:
@@ -248,11 +280,15 @@ class ViewApplication(QtWidgets.QMainWindow):
                 player.close()
                 self.id_data[item_id].pop("video_widget", None)
 
-    def get_widget(self, item_id):
+    def get_widget(self, item_id, force_thumbnail=False):
         item = Item.objects.filter(id=item_id).get()
         new_width, new_height = self.get_new_size(item.width, item.height)
 
-        if item.filetype == int(FileType.Video) and not self.thumbnail_mode:
+        if (
+            item.filetype == int(FileType.Video)
+            and not self.thumbnail_mode
+            and not force_thumbnail
+        ):
             widget = VlcVideoWidget()
             widget.setFixedSize(new_width, new_height)
             widget.set_media(item.getpath())
@@ -372,6 +408,7 @@ class ViewApplication(QtWidgets.QMainWindow):
         )
         self.current_page = max(0, self.current_page)
 
+        videos_started = 0
         for r in range(self.items_per_window):
             if r >= len(self.page_data):
                 break
@@ -381,30 +418,39 @@ class ViewApplication(QtWidgets.QMainWindow):
             row_layout = QtWidgets.QHBoxLayout(row_frame)
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(0)
-            row_layout.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+            row_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+
+            media_container = QtWidgets.QWidget()
+            media_layout = QtWidgets.QHBoxLayout(media_container)
+            media_layout.setContentsMargins(0, 0, 0, 0)
+            media_layout.setSpacing(0)
+            media_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
             for item_id in bin_obj["ids"]:
                 item_frame = QtWidgets.QFrame()
+                item_frame.setSizePolicy(
+                    QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+                )
                 item_layout = QtWidgets.QVBoxLayout(item_frame)
                 item_layout.setContentsMargins(0, 0, 0, 0)
                 item_layout.setSpacing(0)
-                item_layout.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+                item_layout.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
-                button_row = QtWidgets.QHBoxLayout()
+                button_container = QtWidgets.QWidget()
+                button_row = QtWidgets.QHBoxLayout(button_container)
                 button_row.setContentsMargins(0, 0, 0, 0)
                 button_row.setSpacing(0)
+                button_row.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
                 delete_button = QtWidgets.QPushButton("X")
                 modify_button = QtWidgets.QPushButton("M")
                 label_button = QtWidgets.QPushButton("L")
                 tag_button = QtWidgets.QPushButton("T")
-                open_button = QtWidgets.QPushButton("O")
                 print_button = QtWidgets.QPushButton("P")
 
                 delete_button.clicked.connect(partial(self.delete_id, item_id))
                 modify_button.clicked.connect(partial(self.modify_id, item_id))
                 label_button.clicked.connect(partial(self.label_id, item_id))
                 tag_button.clicked.connect(partial(self.tag_id, item_id))
-                open_button.clicked.connect(partial(self.open_id, item_id))
                 print_button.clicked.connect(
                     partial(
                         print,
@@ -418,7 +464,6 @@ class ViewApplication(QtWidgets.QMainWindow):
                     modify_button,
                     label_button,
                     tag_button,
-                    open_button,
                     print_button,
                 ):
                     btn.setEnabled(self.modify_mode)
@@ -426,10 +471,26 @@ class ViewApplication(QtWidgets.QMainWindow):
                     btn.setStyleSheet("padding: 0; margin: 0;")
                     button_row.addWidget(btn)
 
-                media = self.get_widget(item_id)
+                item_type = Item.objects.filter(id=item_id).get().filetype
+                force_thumbnail = False
+                if (
+                    item_type == int(FileType.Video)
+                    and self.videos_currently_played > 0
+                    and videos_started >= self.videos_currently_played
+                ):
+                    force_thumbnail = True
+                media = self.get_widget(item_id, force_thumbnail=force_thumbnail)
+                if item_type == int(FileType.Video) and not force_thumbnail:
+                    videos_started += 1
+                if isinstance(media, QtWidgets.QLabel):
+                    media.mousePressEvent = lambda event, item_id=item_id: self.open_id(
+                        item_id
+                    )
                 item_layout.addWidget(media)
-                item_layout.addLayout(button_row)
-                row_layout.addWidget(item_frame)
+                item_layout.addWidget(
+                    button_container, 0, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter
+                )
+                media_layout.addWidget(item_frame, 0, QtCore.Qt.AlignLeft)
 
             metric_label = QtWidgets.QLabel(
                 f"{metric} [{pos_in_metric + 1}/{len(self.bins[metric])}]"
@@ -438,36 +499,24 @@ class ViewApplication(QtWidgets.QMainWindow):
             metric_label.setSizePolicy(
                 QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
             )
-            row_layout.addWidget(metric_label)
+            label_container = QtWidgets.QWidget()
+            label_layout = QtWidgets.QVBoxLayout(label_container)
+            label_layout.setContentsMargins(0, 0, 0, 0)
+            label_layout.setSpacing(0)
+            label_layout.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+            label_layout.addWidget(metric_label, 0, QtCore.Qt.AlignRight)
+            label_container.setFixedWidth(220)
+
+            row_layout.addWidget(media_container, 1)
+            row_layout.addStretch(1)
+            row_layout.addWidget(label_container, 0, QtCore.Qt.AlignRight)
 
             self.items_scroll_layout.addWidget(row_frame)
 
-        page_row = QtWidgets.QHBoxLayout()
-        super_prev = QtWidgets.QPushButton("<<")
-        prev = QtWidgets.QPushButton("<")
-        current = QtWidgets.QLabel(
+        self.page_current.setText(
             f"{self.current_page + 1 if self.max_page > 0 else 0} / "
             f"{self.max_page - self.items_per_window + 1 if self.max_page > 0 else 0}"
         )
-        next_btn = QtWidgets.QPushButton(">")
-        super_next = QtWidgets.QPushButton(">>")
-
-        super_prev.clicked.connect(self.decrement_page_person)
-        prev.clicked.connect(self.decrement_page)
-        next_btn.clicked.connect(self.increment_page)
-        super_next.clicked.connect(self.increment_page_person)
-
-        page_row.addWidget(super_prev)
-        page_row.addWidget(prev)
-        page_row.addStretch(1)
-        page_row.addWidget(current)
-        page_row.addStretch(1)
-        page_row.addWidget(next_btn)
-        page_row.addWidget(super_next)
-
-        page_container = QtWidgets.QWidget()
-        page_container.setLayout(page_row)
-        self.items_scroll_layout.addWidget(page_container)
 
     def load_chosen_tags(self):
         while self.tag_scroll_layout.count():
@@ -534,6 +583,13 @@ class ViewApplication(QtWidgets.QMainWindow):
             self.max_bin_videos,
             self.update_video_bin_count,
             self.max_bin_videos if self.max_bin_videos > 0 else "",
+        )
+        _option_row(
+            "Videos at once",
+            self.modify_videos_currently_played,
+            self.videos_currently_played,
+            self.update_videos_currently_played,
+            self.videos_currently_played if self.videos_currently_played > 0 else "",
         )
 
         metric_row = QtWidgets.QHBoxLayout()
@@ -757,12 +813,25 @@ class ViewApplication(QtWidgets.QMainWindow):
         self.max_bin_videos = value
         self.rebuild_and_reset()
 
+    def update_videos_currently_played(self, entry):
+        if entry.text().isnumeric():
+            value = int(entry.text())
+            value = max(0, value)
+        else:
+            value = 0
+        self.videos_currently_played = value
+        self.rebuild_and_reset()
+
     def modify_page_increment(self, change):
         self.page_increment_rate = max(1, self.page_increment_rate + change)
         self.rebuild_and_reset()
 
     def modify_video_bin_count(self, change):
         self.max_bin_videos = max(0, self.max_bin_videos + change)
+        self.rebuild_and_reset()
+
+    def modify_videos_currently_played(self, change):
+        self.videos_currently_played = max(0, self.videos_currently_played + change)
         self.rebuild_and_reset()
 
     def update_bin_group_metric(self, entry):
@@ -884,9 +953,7 @@ class ViewApplication(QtWidgets.QMainWindow):
         if self.max_page <= self.items_per_window:
             self.current_page = 0
         else:
-            self.current_page = random.randint(
-                0, self.max_page - self.items_per_window
-            )
+            self.current_page = random.randint(0, self.max_page - self.items_per_window)
         self.load_items()
 
     def decrement_page(self):
@@ -944,6 +1011,18 @@ class ViewApplication(QtWidgets.QMainWindow):
         if not self.completed:
             self.window_closed_manually = True
         super().closeEvent(event)
+
+    def wheelEvent(self, event):
+        if event.angleDelta().y() < 0:
+            self.increment_page()
+        elif event.angleDelta().y() > 0:
+            self.decrement_page()
+        event.accept()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_page_dimensions()
+        self.reset_items()
 
 
 def start_view_application():
