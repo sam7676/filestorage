@@ -299,6 +299,12 @@ class ViewApplication(QtWidgets.QMainWindow):
         resized_image = get_thumbnail(item.id, new_width, new_height)
         qimage = ImageQt.ImageQt(resized_image)
         pixmap = QtGui.QPixmap.fromImage(qimage)
+        pixmap = pixmap.scaled(
+            new_width,
+            new_height,
+            QtCore.Qt.KeepAspectRatio,
+            QtCore.Qt.SmoothTransformation,
+        )
         label = QtWidgets.QLabel()
         label.setPixmap(pixmap)
         label.setFixedSize(new_width, new_height)

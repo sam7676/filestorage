@@ -164,6 +164,12 @@ class ModifyApplication(QtWidgets.QMainWindow):
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)
             pixmap = QtGui.QPixmap.fromImage(qimage)
+            pixmap = pixmap.scaled(
+                target_side,
+                target_side,
+                QtCore.Qt.KeepAspectRatio,
+                QtCore.Qt.SmoothTransformation,
+            )
 
             image_label = ClickableLabel(
                 partial(start_file, item_id), alignment=QtCore.Qt.AlignCenter

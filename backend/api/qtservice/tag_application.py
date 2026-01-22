@@ -684,48 +684,6 @@ class TagApplication(QtWidgets.QMainWindow):
                     row_layout.addStretch(1)
 
             else:
-                value_rank_dictionary = {}
-                if 0 < len(tag_values) < provided_query_width:
-                    sorted_vals = list(sorted(tag_values))
-                    n = len(sorted_vals)
-                    for j, v in enumerate(sorted_vals):
-                        red_distance = min(
-                            abs(j - -n),
-                            abs(j - 0),
-                            abs(j - n),
-                        ) / (0.5 * n)
-                        green_distance = min(
-                            abs(j - -2 * n / 3),
-                            abs(j - n / 3),
-                            abs(j - 4 * n / 3),
-                        ) / (0.5 * n)
-                        blue_distance = min(
-                            abs(j - -n / 3),
-                            abs(j - 2 * n / 3),
-                            abs(j - 5 * n / 3),
-                        ) / (0.5 * n)
-
-                        red_percent = 1 - red_distance
-                        green_percent = 1 - blue_distance
-                        blue_percent = 1 - green_distance
-
-                        bg = (
-                            int(224 + 31 * red_percent),
-                            int(224 + 31 * green_percent),
-                            int(224 + 31 * blue_percent),
-                        )
-                        fg = (
-                            int(32 + 127 * red_percent),
-                            int(32 + 127 * green_percent),
-                            int(32 + 127 * blue_percent),
-                        )
-
-                        bg = "#%02x%02x%02x" % bg
-                        fg = "#%02x%02x%02x" % fg
-
-                        value_rank_dictionary[(v, "bg")] = bg
-                        value_rank_dictionary[(v, "fg")] = fg
-
                 for j in range(provided_query_width):
                     if j >= len(tag_values):
                         tag_value = ""
@@ -749,16 +707,6 @@ class TagApplication(QtWidgets.QMainWindow):
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
                     )
-
-                    if (tag_value, "fg") in value_rank_dictionary:
-                        tag_entry_value.setStyleSheet(
-                            f"color: {value_rank_dictionary[(tag_value, 'fg')]};"
-                            f"background-color: {value_rank_dictionary[(tag_value, 'bg')]};"
-                        )
-                        tag_entry_submit.setStyleSheet(
-                            f"color: {value_rank_dictionary[(tag_value, 'fg')]};"
-                            f"background-color: {value_rank_dictionary[(tag_value, 'bg')]};"
-                        )
 
                     row_layout.addWidget(tag_entry_value, 1)
                     row_layout.addWidget(tag_entry_submit, 0)

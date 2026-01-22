@@ -227,6 +227,12 @@ class CompareApplication(QtWidgets.QMainWindow):
             resized_image = self._resize_thumbnail(resized_image, new_height)
             qimage = ImageQt.ImageQt(resized_image)
             pixmap = QtGui.QPixmap.fromImage(qimage)
+            pixmap = pixmap.scaled(
+                new_width,
+                new_height,
+                QtCore.Qt.KeepAspectRatio,
+                QtCore.Qt.SmoothTransformation,
+            )
             image_button = QtWidgets.QPushButton()
             image_button.setIcon(QtGui.QIcon(pixmap))
             image_button.setIconSize(pixmap.size())

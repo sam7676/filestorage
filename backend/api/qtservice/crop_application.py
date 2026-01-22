@@ -269,6 +269,7 @@ class CropApplication(QtWidgets.QMainWindow):
         qimage = ImageQt.ImageQt(self.image)
         pixmap = QtGui.QPixmap.fromImage(qimage)
         self.pixmap_item = self.scene.addPixmap(pixmap)
+        self.pixmap_item.setTransformationMode(QtCore.Qt.SmoothTransformation)
         self.scene.setSceneRect(0, 0, self.image.width, self.image.height)
 
     def _fit_view(self):

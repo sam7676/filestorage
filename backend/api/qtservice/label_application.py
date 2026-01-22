@@ -218,6 +218,12 @@ class LabelApplication(QtWidgets.QMainWindow):
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)
             pixmap = QtGui.QPixmap.fromImage(qimage)
+            pixmap = pixmap.scaled(
+                target_side,
+                target_side,
+                QtCore.Qt.KeepAspectRatio,
+                QtCore.Qt.SmoothTransformation,
+            )
             image_label = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
             image_label.setPixmap(pixmap)
             image_label.setStyleSheet("background-color: #1C1D21;")

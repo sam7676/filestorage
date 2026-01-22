@@ -175,6 +175,12 @@ class ClipApplication(QtWidgets.QMainWindow):
 
         qimage = ImageQt.ImageQt(resized_image)
         pixmap = QtGui.QPixmap.fromImage(qimage)
+        pixmap = pixmap.scaled(
+            new_width,
+            new_height,
+            QtCore.Qt.KeepAspectRatio,
+            QtCore.Qt.SmoothTransformation,
+        )
 
         if item.filetype == int(FileType.Image):
             widget = QtWidgets.QPushButton()
