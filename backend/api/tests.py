@@ -1,5 +1,6 @@
 import importlib
 import io
+import math
 import sys
 import tempfile
 import types
@@ -127,6 +128,94 @@ class ApiViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         delete_items.assert_called_once_with({123})
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class RandomItemApiTests(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.client = APIClient()
+        user = User.objects.create_user(username="tester", password="pass")
+        token = AccessToken.for_user(user)
+        self.client.cookies["access_token"] = str(token)
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+
+    def _build_items(self, labels):
+        items = {}
+        for idx, label in enumerate(labels, start=1):
+            path = Path(self.temp_dir.name) / f"{idx}.png"
+            path.write_bytes(b"data")
+            items[idx] = {
+                "path": str(path),
+                "mime_type": "image/png",
+                "label": label,
+                "width": 1,
+                "height": 1,
+                "filetype": int(api_models.FileType.Image),
+            }
+        return items
+
+    def _post_random(self, method, items):
+        captured = {}
+
+        def fake_get_items(tags):
+            captured["tags"] = tags
+            return items
+
+        def fake_choices(keys, weights=None, k=None):
+            captured["keys"] = keys
+            captured["weights"] = weights
+            return [keys[0]]
+
+        with (
+            patch(
+                "api.views.get_items_and_paths_from_tags", side_effect=fake_get_items
+            ),
+            patch("api.views.random.choices", side_effect=fake_choices),
+        ):
+            response = self.client.post(
+                "/api/download",
+                {
+                    "type": "image",
+                    "tags": [{"name": "random", "condition": "is", "value": method}],
+                },
+                format="json",
+            )
+
+        response.close()
+        return response, captured
+
+    def test_random_item_recent_weights(self):
+        items = self._build_items(["cat", "dog", "bird"])
+        response, captured = self._post_random("recent", items)
+
+        self.assertEqual(response.status_code, 200)
+        expected = [
+            1 / (3 * len(captured["keys"]) / 2 - i)
+            for i in range(len(captured["keys"]))
+        ]
+        for actual, target in zip(captured["weights"], expected):
+            self.assertTrue(math.isclose(actual, target, rel_tol=1e-6))
+        self.assertTrue(all(key[0] != "random" for key in captured["tags"]))
+
+    def test_random_item_sparse_weights(self):
+        items = self._build_items(["cat", "cat", "dog"])
+        response, captured = self._post_random("sparse", items)
+
+        self.assertEqual(response.status_code, 200)
+        expected = [1 / math.sqrt(2), 1 / math.sqrt(2), 1.0]
+        for actual, target in zip(captured["weights"], expected):
+            self.assertTrue(math.isclose(actual, target, rel_tol=1e-6))
+
+    def test_random_item_dense_weights(self):
+        items = self._build_items(["cat", "cat", "dog"])
+        response, captured = self._post_random("dense", items)
+
+        self.assertEqual(response.status_code, 200)
+        expected = [math.sqrt(2), math.sqrt(2), 1.0]
+        for actual, target in zip(captured["weights"], expected):
+            self.assertTrue(math.isclose(actual, target, rel_tol=1e-6))
 
 
 class ProcessImagesTests(TestCase):
