@@ -684,7 +684,6 @@ class TagApplication(QtWidgets.QMainWindow):
                     row_layout.addStretch(1)
 
             else:
-               
                 for j in range(provided_query_width):
                     if j >= len(tag_values):
                         tag_value = ""
