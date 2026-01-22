@@ -214,8 +214,8 @@ class CompareApplication(QtWidgets.QMainWindow):
             video_widget.setFixedSize(new_width, new_height)
             video_widget.set_media(item.getpath())
             video_widget.play()
-            video_widget.mousePressEvent = lambda event, item_id=item_id: self.open_item(
-                item_id
+            video_widget.mousePressEvent = (
+                lambda event, item_id=item_id: self.open_item(item_id)
             )
             image_container_layout.addWidget(
                 video_widget, 0, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
@@ -302,9 +302,7 @@ class CompareApplication(QtWidgets.QMainWindow):
             if remaining <= 0:
                 break
             target_height_last = max(1, int(target_height * 0.8))
-            width_at_last = max(
-                1, int(item.width * target_height_last / item.height)
-            )
+            width_at_last = max(1, int(item.width * target_height_last / item.height))
             if (
                 target_height_last >= self.min_height_in_crop
                 and width_at_last <= remaining

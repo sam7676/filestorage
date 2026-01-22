@@ -79,7 +79,9 @@ def test_resize_triggers_tag_reload(tag_app_window, qtbot):
 
 
 def test_color_buttons_use_tooltips(tag_app_window):
-    buttons = tag_app_window.suggested_scroll_contents.findChildren(QtWidgets.QPushButton)
+    buttons = tag_app_window.suggested_scroll_contents.findChildren(
+        QtWidgets.QPushButton
+    )
     color_buttons = [b for b in buttons if b.toolTip() in tag_app.COLOR_DATA_NAMES]
     assert color_buttons
     assert all(b.text() == "" for b in color_buttons)

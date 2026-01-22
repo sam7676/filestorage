@@ -165,7 +165,9 @@ class ModifyApplication(QtWidgets.QMainWindow):
             qimage = ImageQt.ImageQt(thumbnail)
             pixmap = QtGui.QPixmap.fromImage(qimage)
 
-            image_label = ClickableLabel(partial(start_file, item_id), alignment=QtCore.Qt.AlignCenter)
+            image_label = ClickableLabel(
+                partial(start_file, item_id), alignment=QtCore.Qt.AlignCenter
+            )
             image_label.setPixmap(pixmap)
             image_label.setStyleSheet("background-color: #1C1D21;")
             image_label.setMinimumSize(1, 1)

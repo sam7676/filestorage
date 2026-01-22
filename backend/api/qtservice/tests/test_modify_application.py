@@ -39,7 +39,9 @@ def modify_window(tmp_path, monkeypatch, qtbot):
     fake_manager = _FakeManager(fake_item)
 
     monkeypatch.setattr(modify_app, "get_top_x_needsmodify_ids", lambda *a, **k: [1])
-    monkeypatch.setattr(modify_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10)))
+    monkeypatch.setattr(
+        modify_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
+    )
     monkeypatch.setattr(modify_app, "delete_items", lambda *a, **k: None)
     monkeypatch.setattr(modify_app, "edit_item", lambda *a, **k: None)
     monkeypatch.setattr(modify_app, "start_file", lambda *a, **k: None)

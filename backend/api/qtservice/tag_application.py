@@ -221,9 +221,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
         self.suggested_scroll = QtWidgets.QScrollArea()
         self.suggested_scroll.setWidgetResizable(True)
-        self.suggested_scroll.setHorizontalScrollBarPolicy(
-            QtCore.Qt.ScrollBarAlwaysOff
-        )
+        self.suggested_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.suggested_scroll_contents = QtWidgets.QWidget()
         self.suggested_scroll_layout = QtWidgets.QVBoxLayout(
             self.suggested_scroll_contents
@@ -638,14 +636,13 @@ class TagApplication(QtWidgets.QMainWindow):
                     row_colours = row_colours[:provided_colour_width]
                     row_colours.sort(key=lambda x: x[2])
 
-                if (
-                    max_colour_buttons is not None
-                    and max_colour_buttons < len(row_colours)
+                if max_colour_buttons is not None and max_colour_buttons < len(
+                    row_colours
                 ):
                     row_colours = row_colours[:max_colour_buttons]
 
-                distribute_colours = (
-                    can_fit_all_colours and len(row_colours) == len(colours)
+                distribute_colours = can_fit_all_colours and len(row_colours) == len(
+                    colours
                 )
 
                 for idx, color_data in enumerate(row_colours):

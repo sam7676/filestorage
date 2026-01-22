@@ -7,7 +7,9 @@ from PySide6 import QtWidgets
 
 
 class _FakeItem:
-    def __init__(self, item_id, filetype=FileType.Image, width=80, height=40, label="cat"):
+    def __init__(
+        self, item_id, filetype=FileType.Image, width=80, height=40, label="cat"
+    ):
         self.id = item_id
         self.filetype = int(filetype)
         self.width = width
@@ -39,10 +41,14 @@ def view_window(monkeypatch, qtbot):
     items = [_FakeItem(1), _FakeItem(2), _FakeItem(3)]
     manager = _FakeManager(items)
 
-    monkeypatch.setattr(view_app, "get_items_and_paths_from_tags", lambda *a, **k: {1: {}, 2: {}, 3: {}})
+    monkeypatch.setattr(
+        view_app, "get_items_and_paths_from_tags", lambda *a, **k: {1: {}, 2: {}, 3: {}}
+    )
     monkeypatch.setattr(view_app, "get_tags", lambda *a, **k: {"label": ["cat"]})
     monkeypatch.setattr(view_app, "get_tag", lambda *a, **k: 1)
-    monkeypatch.setattr(view_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10)))
+    monkeypatch.setattr(
+        view_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
+    )
     monkeypatch.setattr(view_app, "delete_items", lambda *a, **k: None)
     monkeypatch.setattr(view_app, "edit_item", lambda *a, **k: None)
 

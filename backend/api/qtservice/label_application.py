@@ -152,7 +152,9 @@ class LabelApplication(QtWidgets.QMainWindow):
 
     def load_next_items(self):
         self.ids = get_top_x_unlabelled_ids(TOTAL_ITEMS)
-        self.labels = [item["label"] for item in get_all_labels() if item["label"] != ""]
+        self.labels = [
+            item["label"] for item in get_all_labels() if item["label"] != ""
+        ]
         self.labels.sort()
 
         if not self.ids:
@@ -175,13 +177,17 @@ class LabelApplication(QtWidgets.QMainWindow):
 
     def _set_select_button_style(self, button, selected):
         if selected:
-            button.setStyleSheet("background-color: #2D4F3A; border: 1px solid #3A3D44;")
+            button.setStyleSheet(
+                "background-color: #2D4F3A; border: 1px solid #3A3D44;"
+            )
         else:
             button.setStyleSheet("")
 
     def _set_batch_button_style(self, button, toggled):
         if toggled:
-            button.setStyleSheet("background-color: #463A67; border: 1px solid #3A3D44;")
+            button.setStyleSheet(
+                "background-color: #463A67; border: 1px solid #3A3D44;"
+            )
         else:
             button.setStyleSheet("")
 

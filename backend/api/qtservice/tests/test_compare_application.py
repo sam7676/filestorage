@@ -34,9 +34,13 @@ def compare_window(monkeypatch, qtbot):
     items = [_FakeItem(1), _FakeItem(2), _FakeItem(3)]
     manager = _FakeManager(items)
 
-    monkeypatch.setattr(compare_app, "get_random_compare_item", lambda *a, **k: items[0])
+    monkeypatch.setattr(
+        compare_app, "get_random_compare_item", lambda *a, **k: items[0]
+    )
     monkeypatch.setattr(compare_app, "get_comparison_items", lambda *a, **k: [2, 3])
-    monkeypatch.setattr(compare_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10)))
+    monkeypatch.setattr(
+        compare_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
+    )
     monkeypatch.setattr(compare_app, "delete_items", lambda *a, **k: None)
 
     class _FakeItemModel:
@@ -62,7 +66,9 @@ def test_remove_item_updates_list(monkeypatch, compare_window):
 def test_next_loads_new_item(monkeypatch, compare_window):
     items = [_FakeItem(10), _FakeItem(11)]
     manager = _FakeManager(items)
-    monkeypatch.setattr(compare_app, "get_random_compare_item", lambda *a, **k: items[1])
+    monkeypatch.setattr(
+        compare_app, "get_random_compare_item", lambda *a, **k: items[1]
+    )
     monkeypatch.setattr(compare_app, "get_comparison_items", lambda *a, **k: [])
     monkeypatch.setattr(compare_app.Item, "objects", manager)
 

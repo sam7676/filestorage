@@ -107,7 +107,9 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.keep_none_button.clicked.connect(self.choose_none)
         self.swap_button.clicked.connect(self.change_swap)
 
-        QtGui.QShortcut(QtGui.QKeySequence("Return"), self, activated=self.choose_middle)
+        QtGui.QShortcut(
+            QtGui.QKeySequence("Return"), self, activated=self.choose_middle
+        )
 
     def _apply_dark_theme(self):
         self.setStyleSheet(
@@ -212,9 +214,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self._clear_layout(self.right_layout)
 
         self.left_item_id = self.item_id if not self.swap else self.nearest_item_id
-        self.right_item_id = (
-            self.nearest_item_id if not self.swap else self.item_id
-        )
+        self.right_item_id = self.nearest_item_id if not self.swap else self.item_id
 
         self._get_widget(self.left_item_id, self.left_layout)
         self._get_widget(self.right_item_id, self.right_layout)

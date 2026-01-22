@@ -11,7 +11,9 @@ def multitag_window(monkeypatch, qtbot):
     monkeypatch.setattr(multitag_app, "check_for_unlabelled", lambda: False)
     monkeypatch.setattr(multitag_app, "get_all_labels", lambda *a, **k: [])
     monkeypatch.setattr(multitag_app, "get_untagged_ids", lambda *a, **k: [1])
-    monkeypatch.setattr(multitag_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10)))
+    monkeypatch.setattr(
+        multitag_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
+    )
     monkeypatch.setattr(multitag_app, "add_tags", lambda *a, **k: None)
 
     class _FakeItem:

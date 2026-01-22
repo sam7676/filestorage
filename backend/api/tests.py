@@ -505,7 +505,8 @@ class ViewsExtensionTests(TestCase):
         rotated_path = Path(item.getpath())
         rotated = Image.open(rotated_path)
         self.assertEqual(
-            rotated.size, (views_extension.MEDIA_HEIGHT, views_extension.MEDIA_HEIGHT * 2)
+            rotated.size,
+            (views_extension.MEDIA_HEIGHT, views_extension.MEDIA_HEIGHT * 2),
         )
 
     def test_crop_and_resize_from_view_no_rotation(self):
@@ -628,9 +629,9 @@ class QtServicePipelineTests(TestCase):
         self.assertEqual(item.label, "dog")
 
         labelplus_values = set(
-            api_models.Tags.objects.filter(item_id=item.id, name="labelplus").values_list(
-                "value", flat=True
-            )
+            api_models.Tags.objects.filter(
+                item_id=item.id, name="labelplus"
+            ).values_list("value", flat=True)
         )
         self.assertIn("dog", labelplus_values)
 
