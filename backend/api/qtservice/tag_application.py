@@ -739,6 +739,8 @@ class TagApplication(QtWidgets.QMainWindow):
         new_value = self._entry_text(value_entry).strip().lower()
 
         if old_name == new_name and old_value == new_value:
+            if self.partials_to_execute:
+                self.commit_and_reload()
             return
 
         if old_name != "" and old_value != "":
