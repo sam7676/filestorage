@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import View from '../../app/view/page';
 import fetchWithRefresh from '../../app/utils/fetchwithrefresh';
@@ -65,6 +65,56 @@ describe('View page', () => {
         '/api/delete',
         expect.objectContaining({ method: 'POST' }),
       );
+    });
+  });
+
+  it('does not reload media on resize events', async () => {
+    window.innerWidth = 1200;
+    window.innerHeight = 900;
+
+    const { findByAltText } = render(<View />);
+    await findByAltText('Loaded media');
+
+    const initialCalls = vi.mocked(fetchWithRefresh).mock.calls.length;
+
+    window.innerWidth = 800;
+    window.innerHeight = 600;
+    await act(async () => {
+      fireEvent(window, new Event('resize'));
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    });
+
+    await waitFor(() => {
+      expect(vi.mocked(fetchWithRefresh).mock.calls.length).toBe(initialCalls);
+    });
+  });
+
+  it('recalculates dimensions on resize without replacing media', async () => {
+    window.innerWidth = 1200;
+    window.innerHeight = 900;
+
+    const { findByAltText } = render(<View />);
+    const media = await findByAltText('Loaded media');
+
+    const initialWidth = media.getAttribute('width');
+    const initialHeight = media.getAttribute('height');
+    expect(initialWidth).toBe('120');
+    expect(initialHeight).toBe('80');
+    expect(globalThis.URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+    window.innerWidth = 100;
+    window.innerHeight = 100;
+    await act(async () => {
+      fireEvent(window, new Event('resize'));
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    });
+
+    await waitFor(() => {
+      const nextWidth = media.getAttribute('width');
+      const nextHeight = media.getAttribute('height');
+      expect(nextWidth).not.toBe(initialWidth);
+      expect(nextHeight).not.toBe(initialHeight);
+      expect(globalThis.URL.createObjectURL).toHaveBeenCalledTimes(1);
     });
   });
 });

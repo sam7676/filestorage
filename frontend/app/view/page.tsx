@@ -49,25 +49,16 @@ export default function View() {
   const [storedTuples, setStoredTuples] = useState<Tuple[]>([]);
 
   const [queueSize, setQueueSize] = useState<number>(DEFAULT_QUEUE_SIZE);
-  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [maxBounds, setMaxBounds] = useState({ width: 400, height: 676 });
+  const [originalSize, setOriginalSize] = useState({ width: 0, height: 0 });
 
   const swipeHandlers = useSwipe({
     onSwipedLeft: () => loadMedia('video'),
     onSwipedRight: () => loadMedia('image'),
   });
 
-  let maxHeight = 676;
-  let maxWidth = 400;
-
-  if (viewportSize.height > 0 && viewportSize.width > 0) {
-    maxHeight = viewportSize.height - 16 || 676;
-    maxWidth = viewportSize.width - 16 || 400;
-  } else {
-    try {
-      maxHeight = window.innerHeight - 16 || 676;
-      maxWidth = window.innerWidth - 16 || 400;
-    } catch (e) {}
-  }
+  const maxHeight = maxBounds.height;
+  const maxWidth = maxBounds.width;
 
   const backgroundColor = '#1F1F1F';
   const loadingColor = '#000000';
@@ -87,6 +78,22 @@ export default function View() {
   function getErrorMessage(error: unknown) {
     if (error instanceof Error) return error.message;
     return String(error);
+  }
+
+  function fitToBounds(width: number, height: number, maxWidth: number, maxHeight: number) {
+    let fittedWidth = width;
+    let fittedHeight = height;
+
+    if (maxHeight > 0 && fittedHeight > maxHeight) {
+      fittedWidth = Math.round((fittedWidth * maxHeight) / fittedHeight);
+      fittedHeight = maxHeight;
+    }
+    if (maxWidth > 0 && fittedWidth > maxWidth) {
+      fittedHeight = Math.round((fittedHeight * maxWidth) / fittedWidth);
+      fittedWidth = maxWidth;
+    }
+
+    return { width: fittedWidth, height: fittedHeight };
   }
 
   const reportError = ({ message }: { message: string }) => {
@@ -223,17 +230,9 @@ export default function View() {
       const mimeType = response.headers.get('Content-Type');
 
       // Width-height sizing
-      var width = parseInt(response.headers.get('X-Width') || '0');
-      var height = parseInt(response.headers.get('X-Height') || '0');
-
-      if (height > maxHeight) {
-        width = Math.round((width * maxHeight) / height);
-        height = maxHeight;
-      }
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
+      const originalWidth = parseInt(response.headers.get('X-Width') || '0');
+      const originalHeight = parseInt(response.headers.get('X-Height') || '0');
+      const fittedSize = fitToBounds(originalWidth, originalHeight, maxWidth, maxHeight);
 
       const blob = await response.blob();
 
@@ -251,8 +250,9 @@ export default function View() {
       setCurrentType(returnedType);
       setCurrentLabel(returnedLabel);
       setCurrentId(itemId);
-      setCurrentWidth(width);
-      setCurrentHeight(height);
+      setOriginalSize({ width: originalWidth, height: originalHeight });
+      setCurrentWidth(fittedSize.width);
+      setCurrentHeight(fittedSize.height);
 
       // Remove element from queue
       queue.shift();
@@ -363,18 +363,11 @@ export default function View() {
   useEffect(() => {
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     const updateViewport = () => {
-      setViewportSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-      setCurrentUrl(null);
-      setCurrentType(null);
-      setCurrentId(null);
-      setCurrentWidth(0);
-      setCurrentHeight(0);
-      setImageQueue([]);
-      setVideoQueue([]);
-      setStoredTuples([]);
+      const viewportWidth = window.innerWidth || 0;
+      const viewportHeight = window.innerHeight || 0;
+      const nextWidth = viewportWidth > 0 ? Math.max(1, viewportWidth - 16) : 400;
+      const nextHeight = viewportHeight > 0 ? Math.max(1, viewportHeight - 16) : 676;
+      setMaxBounds({ width: nextWidth, height: nextHeight });
     };
     const handleResize = () => {
       if (resizeTimer) {
@@ -382,7 +375,6 @@ export default function View() {
       }
       resizeTimer = setTimeout(() => {
         updateViewport();
-        loadMedia('image');
       }, 200);
     };
     updateViewport();
@@ -401,7 +393,21 @@ export default function View() {
         window.visualViewport.removeEventListener('resize', handleResize);
       }
     };
-  }, [loadMedia]);
+  }, []);
+
+  useEffect(() => {
+    if (!originalSize.width || !originalSize.height) {
+      return;
+    }
+    const fittedSize = fitToBounds(
+      originalSize.width,
+      originalSize.height,
+      maxBounds.width,
+      maxBounds.height,
+    );
+    setCurrentWidth(fittedSize.width);
+    setCurrentHeight(fittedSize.height);
+  }, [originalSize, maxBounds]);
 
   // Cleanup URL on unmount
   useEffect(() => {
