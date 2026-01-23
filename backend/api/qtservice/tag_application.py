@@ -32,6 +32,7 @@ COLOR_DATA = [
     ("grey", "#808080", -2, 1),
     ("red", "#FF0000", 1, 2),
     ("yellow", "#E1C223", 21, 2),
+    ("lightblue", "#ADD8E6", 47, 2),
     ("blue", "#525DBE", 50, 2),
     ("green", "#1CE31C", 31, 2),
     ("orange", "#FF8000", 12, 2),
@@ -45,7 +46,7 @@ COLOR_DATA = [
     ("olive", "#556B2F", 34, 3),
     ("teal", "#008080", 44, 4),
     ("salmon", "#FA8072", 7, 4),
-    ("peach", "#FFDAB9", 14, 4),
+    ("peach", "#FFDAB9", 11, 4),
     ("khaki", "#F0E68C", 26, 4),
     ("tan", "#D2B48C", 93, 4),
 ]
@@ -789,7 +790,8 @@ class TagApplication(QtWidgets.QMainWindow):
     def add_partial(self, partial_fn, button, event=None):
         self.partials_to_execute.append(partial_fn)
         button.setStyleSheet(
-            f"color: {CONFIRMED_COLOR}; background-color: {CONFIRMED_COLOR};"
+            f"color: {CONFIRMED_COLOR}; background-color: {CONFIRMED_COLOR}; "
+            "border: 1px solid #B23A3A;"
         )
         button.setEnabled(False)
 
