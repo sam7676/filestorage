@@ -76,6 +76,7 @@ class Rules(models.Model):
     tag_name = models.CharField(max_length=100)
     tag_value = models.CharField(max_length=100)
 
+
 def print_methods():
     print("""
     print_rules(label=None, tag_name=None, tag_value=None, tag_first=True)
@@ -83,6 +84,7 @@ def print_methods():
     add_rule(label, tag_name, tag_value)
     remove_rule(label, tag_name, tag_value)
     """)
+
 
 def print_rules(label=None, tag_name=None, tag_value=None, tag_first=True):
     sort_list = ("tag_name", "label") if tag_first else ("label", "tag_name")
