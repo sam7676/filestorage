@@ -324,29 +324,26 @@ class TagApplication(QtWidgets.QMainWindow):
     def _estimate_widget_size(self):
         if not self.item:
             return
-        container_height = self.media_container.height()
-        if container_height <= 0 and self._screen_geometry:
-            container_height = int(self._screen_geometry.height() * 0.7)
+        window_height = max(self.height(), 1)
+        window_margins = self.main_layout.contentsMargins()
+        window_padding = window_margins.top() + window_margins.bottom()
+        media_margins = self.media_layout.contentsMargins()
+        media_padding = media_margins.top() + media_margins.bottom()
+        media_padding += max(self.media_layout.spacing(), 0)
         button_hint = self.confirm_button.sizeHint().height()
-        layout_margins = self.media_layout.contentsMargins()
-        layout_padding = layout_margins.top() + layout_margins.bottom()
-        layout_padding += max(self.media_layout.spacing(), 0)
-        max_height = max(container_height - (button_hint + layout_padding), 200)
+        max_height = max(
+            window_height - (window_padding + media_padding + button_hint), 200
+        )
 
         new_width = int(round(self.item.width * max_height / self.item.height))
         new_height = max_height
-        if new_width > max_height * 1.5:
-            new_width = int(round(max_height * 1.5))
-            new_height = int(round(new_width * self.item.height / self.item.width))
         self.widget_width = new_width
         self.widget_height = new_height
         self.media_container.setMinimumWidth(new_width)
         if hasattr(self, "main_layout"):
             total_width = max(self.width(), 1)
-            desired_ratio = min(self.widget_width / total_width, 1.0)
-            image_ratio = max(desired_ratio, 0.7)
-            image_stretch = max(1, int(round(image_ratio * 100)))
-            tag_stretch = max(1, 100 - image_stretch)
+            image_stretch = max(1, int(self.widget_width))
+            tag_stretch = max(1, int(max(total_width - self.widget_width, 1)))
             self.main_layout.setStretch(0, image_stretch)
             self.main_layout.setStretch(1, tag_stretch)
 
@@ -599,7 +596,8 @@ class TagApplication(QtWidgets.QMainWindow):
             tag_entry_name = QtWidgets.QLineEdit()
             tag_entry_name.setText(tag_name)
             tag_entry_name.setFixedWidth(max_name_width)
-            row_height = tag_entry_name.sizeHint().height()
+            row_height = max(tag_entry_name.sizeHint().height(), 24)
+            tag_entry_name.setFixedHeight(row_height)
             if priority != 0:
                 priority_fg, priority_bg = PRIORITY_COLORS[priority]
                 tag_entry_name.setStyleSheet(
@@ -679,6 +677,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
                     tag_entry_value = QtWidgets.QLineEdit()
                     tag_entry_value.setText(tag_value)
+                    tag_entry_value.setFixedHeight(row_height)
                     partial_cmd = partial(
                         self.update_tags,
                         name_entry=tag_entry_name,
