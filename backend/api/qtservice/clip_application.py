@@ -258,7 +258,7 @@ class ClipApplication(QtWidgets.QMainWindow):
             widget.close()
         self._video_widgets = []
 
-    def _get_widget(self, item_id, frame_layout):
+    def _get_widget(self, item_id, frame_layout, align):
         item = Item.objects.filter(id=item_id).get()
         self._update_media_constraints()
 
@@ -307,7 +307,7 @@ class ClipApplication(QtWidgets.QMainWindow):
                 widget.setStyleSheet("background-color: #1C1D21; border: none;")
 
         widget.setStyleSheet("background-color: #1C1D21; border: none;")
-        frame_layout.addWidget(widget, 1)
+        frame_layout.addWidget(widget, 1, align)
 
         type_to_str_map = {0: "image", 1: "video"}
         type_label = QtWidgets.QLabel(type_to_str_map[item.filetype])
@@ -336,8 +336,8 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.left_item_id = self.item_id if not self.swap else self.nearest_item_id
         self.right_item_id = self.nearest_item_id if not self.swap else self.item_id
 
-        self._get_widget(self.left_item_id, self.left_layout)
-        self._get_widget(self.right_item_id, self.right_layout)
+        self._get_widget(self.left_item_id, self.left_layout, QtCore.Qt.AlignRight)
+        self._get_widget(self.right_item_id, self.right_layout, QtCore.Qt.AlignLeft)
 
         self.swap_button.setStyleSheet(
             "color: #FF0000;" if self.swap else "color: #E6E6E6;"
