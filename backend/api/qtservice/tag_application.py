@@ -418,6 +418,9 @@ class TagApplication(QtWidgets.QMainWindow):
             name_entry.setText(tag_name)
             value_entry = QtWidgets.QLineEdit()
             value_entry.setText(tag_value)
+            row_height = max(name_entry.sizeHint().height(), 28)
+            name_entry.setFixedHeight(row_height)
+            value_entry.setFixedHeight(row_height)
 
             row_layout.addWidget(name_entry, 1)
             row_layout.addWidget(value_entry, 1)
@@ -456,6 +459,7 @@ class TagApplication(QtWidgets.QMainWindow):
                     )
                 )
             for button in (submit_button, remove_button):
+                button.setFixedHeight(row_height)
                 row_layout.addWidget(button, 0)
 
             self.tag_scroll_layout.addWidget(row)
@@ -597,7 +601,7 @@ class TagApplication(QtWidgets.QMainWindow):
             tag_entry_name = QtWidgets.QLineEdit()
             tag_entry_name.setText(tag_name)
             tag_entry_name.setFixedWidth(max_name_width)
-            row_height = max(tag_entry_name.sizeHint().height(), 24)
+            row_height = max(tag_entry_name.sizeHint().height(), 28)
             tag_entry_name.setFixedHeight(row_height)
             if priority != 0:
                 priority_fg, priority_bg = PRIORITY_COLORS[priority]
