@@ -16,6 +16,7 @@ import vlc
 
 
 THUMBNAIL_MODE = True
+VIDEOS_TO_PLAY = 0
 
 
 class VlcVideoWidget(QtWidgets.QFrame):
@@ -100,6 +101,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self._last_nearest_item_id = None
         self._video_widgets = []
         self._screen_geometry = None
+        self.videos_to_play = VIDEOS_TO_PLAY
 
         self.setWindowTitle("Clip application")
         screen = QtGui.QGuiApplication.primaryScreen()
@@ -266,19 +268,23 @@ class ClipApplication(QtWidgets.QMainWindow):
             new_width = self.max_width_of_crop
             new_height = int(round(new_width * item.height / item.width))
 
-        if item.filetype == int(FileType.Video):
+        use_video_player = (
+            item.filetype == int(FileType.Video) and self.videos_to_play > 0
+        )
+        if use_video_player:
             widget = VlcVideoWidget()
             widget.setFixedSize(new_width, new_height)
             widget.set_media(item.getpath())
             widget.play()
             widget.mousePressEvent = lambda event, item_id=item_id: start_file(item_id)
             self._video_widgets.append(widget)
+            self.videos_to_play -= 1
         elif THUMBNAIL_MODE:
             resized_image = get_thumbnail(item.id, new_width, new_height)
         else:
             resized_image = get_thumbnail(item.id, new_width, new_height)
 
-        if item.filetype != int(FileType.Video):
+        if not use_video_player:
             qimage = ImageQt.ImageQt(resized_image)
             pixmap = QtGui.QPixmap.fromImage(qimage)
             pixmap = pixmap.scaled(
@@ -325,6 +331,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self._clear_video_players()
         self._clear_layout(self.left_layout)
         self._clear_layout(self.right_layout)
+        self.videos_to_play = VIDEOS_TO_PLAY
 
         self.left_item_id = self.item_id if not self.swap else self.nearest_item_id
         self.right_item_id = self.nearest_item_id if not self.swap else self.item_id

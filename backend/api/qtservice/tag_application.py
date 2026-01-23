@@ -10,7 +10,7 @@ from api.views_extension import (
 )
 from api.models import Item, FileType, FileState
 from api.utils.overrides import PRIORITY_TAG_MAP, PRIORITY_COLORS
-from collections import defaultdict
+from collections import defaultdict, deque
 from functools import partial
 import sys
 import os
@@ -21,6 +21,7 @@ import vlc
 
 
 VIDEO_CACHE_MS = 200
+MAX_PREVIOUS_IDS = 1000
 
 BANNED_TAGS = ("label", "filetype")
 
@@ -133,7 +134,7 @@ class TagApplication(QtWidgets.QMainWindow):
         self.media_label = None
         self.tag_query_width = 0
         self.partials_to_execute = []
-        self.last_id = None
+        self.previous_ids = deque()
         self.window_closed_manually = False
         self.completed = False
         self.widget_width = 0
@@ -800,20 +801,23 @@ class TagApplication(QtWidgets.QMainWindow):
         button.setEnabled(False)
 
     def revoke_last(self):
-        if not self.last_id:
+        if not self.previous_ids:
             return
-        edit_item(self.last_id, new_state=int(FileState.NeedsTags))
+        last_id = self.previous_ids.pop()
+        edit_item(last_id, new_state=int(FileState.NeedsTags))
         self.clear_commit_and_next()
 
     def confirm(self):
         self.commit()
         edit_item(item_id=self.item_id, new_state=int(FileState.Complete))
-        self.last_id = self.item_id
+        if self.item_id is not None:
+            self.previous_ids.append(self.item_id)
+            while len(self.previous_ids) > MAX_PREVIOUS_IDS:
+                self.previous_ids.popleft()
         self.load_next_item()
 
     def delete(self):
         delete_items(item_ids=(self.item_id,))
-        self.last_id = None
         self.clear_commit_and_next()
 
     def open_item(self):
