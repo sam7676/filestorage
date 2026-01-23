@@ -143,7 +143,7 @@ class TagApplication(QtWidgets.QMainWindow):
         self._resize_timer.setInterval(150)
         self._resize_timer.timeout.connect(self._on_resize_timeout)
 
-        self.setWindowTitle("Tagger")
+        self.setWindowTitle("Tag application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             self._screen_geometry = screen.availableGeometry()
@@ -309,7 +309,7 @@ class TagApplication(QtWidgets.QMainWindow):
             return
 
         self.item = Item.objects.filter(id=self.item_id).get()
-        self.setWindowTitle(f"Tagger - Item {self.item_id}")
+        self.setWindowTitle(f"Tag application - Item {self.item_id}")
 
         self.load_media()
         self.load_tags()
@@ -350,17 +350,9 @@ class TagApplication(QtWidgets.QMainWindow):
             )
             self.media_label.setMinimumSize(1, 1)
             self.media_label.mousePressEvent = lambda event: self.open_item()
-            pixmap = QtGui.QPixmap(self.item.getpath())
-            if not pixmap.isNull():
-                self.media_label.setPixmap(
-                    pixmap.scaled(
-                        self.media_area.size(),
-                        QtCore.Qt.KeepAspectRatio,
-                        QtCore.Qt.SmoothTransformation,
-                    )
-                )
             self.media_area.addWidget(self.media_label)
             self.media_area.setCurrentWidget(self.media_label)
+            QtCore.QTimer.singleShot(0, self._refresh_media_scale)
         elif self.item.filetype == int(FileType.Video):
             self.media_widget = VlcVideoWidget()
             self.media_area.addWidget(self.media_widget)
@@ -371,16 +363,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if self.media_label and self.item and self.item.filetype == int(FileType.Image):
-            pixmap = QtGui.QPixmap(self.item.getpath())
-            if not pixmap.isNull():
-                self.media_label.setPixmap(
-                    pixmap.scaled(
-                        self.media_area.size(),
-                        QtCore.Qt.KeepAspectRatio,
-                        QtCore.Qt.SmoothTransformation,
-                    )
-                )
+        self._refresh_media_scale()
         if self.item:
             self._resize_timer.start()
 
@@ -585,9 +568,9 @@ class TagApplication(QtWidgets.QMainWindow):
         if self.suggested_scroll.viewport():
             viewport_width = max(self.suggested_scroll.viewport().width(), 1)
             label_width = int(tag_label_width)
-            button_width = 18
-            available = max(viewport_width - label_width, button_width)
-            max_colour_buttons = max(1, available // (button_width + 4))
+            min_button_width = 8
+            available = max(viewport_width - label_width, min_button_width)
+            max_colour_buttons = max(1, available // min_button_width)
 
         def _is_colour_value(value):
             return value in COLOR_DATA_NAMES or value in ("any", "none")
@@ -612,6 +595,7 @@ class TagApplication(QtWidgets.QMainWindow):
             row_layout.addWidget(tag_entry_name, 0, QtCore.Qt.AlignLeft)
 
             if tag_values and all(_is_colour_value(v) for v in tag_values):
+                row_layout.setSpacing(0)
                 row_layout.setAlignment(QtCore.Qt.AlignLeft)
                 row_colours = list(colours)
                 if not can_fit_all_colours:
@@ -641,10 +625,6 @@ class TagApplication(QtWidgets.QMainWindow):
                 ):
                     row_colours = row_colours[:max_colour_buttons]
 
-                distribute_colours = can_fit_all_colours and len(row_colours) == len(
-                    colours
-                )
-
                 for idx, color_data in enumerate(row_colours):
                     tag_value = color_data[0]
                     tag_color = color_data[1]
@@ -659,7 +639,11 @@ class TagApplication(QtWidgets.QMainWindow):
                     )
 
                     tag_entry_submit = QtWidgets.QPushButton("")
-                    tag_entry_submit.setFixedSize(14, 14)
+                    tag_entry_submit.setFixedHeight(14)
+                    tag_entry_submit.setMinimumWidth(8)
+                    tag_entry_submit.setSizePolicy(
+                        QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+                    )
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
                     )
@@ -669,19 +653,7 @@ class TagApplication(QtWidgets.QMainWindow):
                         f"background-color: {tag_color}; padding: 0px;"
                     )
 
-                    row_layout.addWidget(tag_entry_submit, 0)
-                    if distribute_colours and idx < len(row_colours) - 1:
-                        row_layout.addSpacerItem(
-                            QtWidgets.QSpacerItem(
-                                0,
-                                0,
-                                QtWidgets.QSizePolicy.Expanding,
-                                QtWidgets.QSizePolicy.Minimum,
-                            )
-                        )
-
-                if not distribute_colours:
-                    row_layout.addStretch(1)
+                    row_layout.addWidget(tag_entry_submit, 1)
 
             else:
                 for j in range(provided_query_width):
@@ -719,6 +691,25 @@ class TagApplication(QtWidgets.QMainWindow):
         if hasattr(entry, "text"):
             return entry.text()
         return entry.get()
+
+    def _refresh_media_scale(self):
+        if not (self.media_label and self.item):
+            return
+        if self.item.filetype != int(FileType.Image):
+            return
+        pixmap = QtGui.QPixmap(self.item.getpath())
+        if pixmap.isNull():
+            return
+        target_size = self.media_area.size()
+        if target_size.width() <= 1 or target_size.height() <= 1:
+            return
+        self.media_label.setPixmap(
+            pixmap.scaled(
+                target_size,
+                QtCore.Qt.KeepAspectRatio,
+                QtCore.Qt.SmoothTransformation,
+            )
+        )
 
     def update_tags(
         self, name_entry, value_entry, old_name, old_value, reset_tags=True, event=None

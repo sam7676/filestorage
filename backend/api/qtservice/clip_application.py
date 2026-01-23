@@ -101,7 +101,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self._video_widgets = []
         self._screen_geometry = None
 
-        self.setWindowTitle("Clip")
+        self.setWindowTitle("Clip application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()

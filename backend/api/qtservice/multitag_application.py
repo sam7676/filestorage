@@ -42,7 +42,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.chosen_tags = {}
         self.labels = []
 
-        self.setWindowTitle("MultiTag")
+        self.setWindowTitle("Multitag application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()
