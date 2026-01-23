@@ -10,7 +10,7 @@ from api.views_extension import (
 )
 from api.models import Item, FileType, FileState
 from api.utils.overrides import PRIORITY_TAG_MAP, PRIORITY_COLORS
-from collections import defaultdict
+from collections import defaultdict, deque
 from functools import partial
 import sys
 import os
@@ -21,6 +21,7 @@ import vlc
 
 
 VIDEO_CACHE_MS = 200
+MAX_PREVIOUS_IDS = 1000
 
 BANNED_TAGS = ("label", "filetype")
 
@@ -32,6 +33,7 @@ COLOR_DATA = [
     ("grey", "#808080", -2, 1),
     ("red", "#FF0000", 1, 2),
     ("yellow", "#E1C223", 21, 2),
+    ("lightblue", "#ADD8E6", 47, 2),
     ("blue", "#525DBE", 50, 2),
     ("green", "#1CE31C", 31, 2),
     ("orange", "#FF8000", 12, 2),
@@ -45,7 +47,7 @@ COLOR_DATA = [
     ("olive", "#556B2F", 34, 3),
     ("teal", "#008080", 44, 4),
     ("salmon", "#FA8072", 7, 4),
-    ("peach", "#FFDAB9", 14, 4),
+    ("peach", "#FFDAB9", 11, 4),
     ("khaki", "#F0E68C", 26, 4),
     ("tan", "#D2B48C", 93, 4),
 ]
@@ -132,7 +134,7 @@ class TagApplication(QtWidgets.QMainWindow):
         self.media_label = None
         self.tag_query_width = 0
         self.partials_to_execute = []
-        self.last_id = None
+        self.previous_ids = deque()
         self.window_closed_manually = False
         self.completed = False
         self.widget_width = 0
@@ -143,7 +145,7 @@ class TagApplication(QtWidgets.QMainWindow):
         self._resize_timer.setInterval(150)
         self._resize_timer.timeout.connect(self._on_resize_timeout)
 
-        self.setWindowTitle("Tagger")
+        self.setWindowTitle("Tag application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             self._screen_geometry = screen.availableGeometry()
@@ -168,6 +170,9 @@ class TagApplication(QtWidgets.QMainWindow):
         # Media panel
         self.media_container = QtWidgets.QFrame()
         self.media_container.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.media_container.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         self.media_layout = QtWidgets.QVBoxLayout(self.media_container)
         self.media_layout.setContentsMargins(0, 0, 0, 0)
         self.media_layout.setSpacing(6)
@@ -189,6 +194,10 @@ class TagApplication(QtWidgets.QMainWindow):
         # Tag panel
         self.tag_container = QtWidgets.QFrame()
         self.tag_container.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.tag_container.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
+        self.tag_container.setMinimumWidth(300)
         self.tag_layout = QtWidgets.QVBoxLayout(self.tag_container)
         self.tag_layout.setContentsMargins(8, 8, 8, 8)
         self.tag_layout.setSpacing(8)
@@ -309,7 +318,7 @@ class TagApplication(QtWidgets.QMainWindow):
             return
 
         self.item = Item.objects.filter(id=self.item_id).get()
-        self.setWindowTitle(f"Tagger - Item {self.item_id}")
+        self.setWindowTitle(f"Tag application - Item {self.item_id}")
 
         self.load_media()
         self.load_tags()
@@ -317,24 +326,26 @@ class TagApplication(QtWidgets.QMainWindow):
     def _estimate_widget_size(self):
         if not self.item:
             return
-        container_height = self.media_container.height()
-        if container_height <= 0 and self._screen_geometry:
-            container_height = int(self._screen_geometry.height() * 0.7)
-        max_height = max(container_height - 60, 200)
+        window_height = max(self.height(), 1)
+        window_margins = self.main_layout.contentsMargins()
+        window_padding = window_margins.top() + window_margins.bottom()
+        media_margins = self.media_layout.contentsMargins()
+        media_padding = media_margins.top() + media_margins.bottom()
+        media_padding += max(self.media_layout.spacing(), 0)
+        button_hint = self.confirm_button.sizeHint().height()
+        max_height = max(
+            window_height - (window_padding + media_padding + button_hint), 200
+        )
 
         new_width = int(round(self.item.width * max_height / self.item.height))
         new_height = max_height
-        if new_width > max_height * 1.5:
-            new_width = int(round(max_height * 1.5))
-            new_height = int(round(new_width * self.item.height / self.item.width))
         self.widget_width = new_width
         self.widget_height = new_height
+        self.media_container.setMinimumWidth(new_width)
         if hasattr(self, "main_layout"):
             total_width = max(self.width(), 1)
-            image_stretch = max(
-                1, int(round(min(self.widget_width / total_width, 1.0) * 100))
-            )
-            tag_stretch = max(1, 100 - image_stretch)
+            image_stretch = max(1, int(self.widget_width))
+            tag_stretch = max(1, int(max(total_width - self.widget_width, 1)))
             self.main_layout.setStretch(0, image_stretch)
             self.main_layout.setStretch(1, tag_stretch)
 
@@ -350,17 +361,9 @@ class TagApplication(QtWidgets.QMainWindow):
             )
             self.media_label.setMinimumSize(1, 1)
             self.media_label.mousePressEvent = lambda event: self.open_item()
-            pixmap = QtGui.QPixmap(self.item.getpath())
-            if not pixmap.isNull():
-                self.media_label.setPixmap(
-                    pixmap.scaled(
-                        self.media_area.size(),
-                        QtCore.Qt.KeepAspectRatio,
-                        QtCore.Qt.SmoothTransformation,
-                    )
-                )
             self.media_area.addWidget(self.media_label)
             self.media_area.setCurrentWidget(self.media_label)
+            QtCore.QTimer.singleShot(0, self._refresh_media_scale)
         elif self.item.filetype == int(FileType.Video):
             self.media_widget = VlcVideoWidget()
             self.media_area.addWidget(self.media_widget)
@@ -371,16 +374,8 @@ class TagApplication(QtWidgets.QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if self.media_label and self.item and self.item.filetype == int(FileType.Image):
-            pixmap = QtGui.QPixmap(self.item.getpath())
-            if not pixmap.isNull():
-                self.media_label.setPixmap(
-                    pixmap.scaled(
-                        self.media_area.size(),
-                        QtCore.Qt.KeepAspectRatio,
-                        QtCore.Qt.SmoothTransformation,
-                    )
-                )
+        self._estimate_widget_size()
+        self._refresh_media_scale()
         if self.item:
             self._resize_timer.start()
 
@@ -424,6 +419,9 @@ class TagApplication(QtWidgets.QMainWindow):
             name_entry.setText(tag_name)
             value_entry = QtWidgets.QLineEdit()
             value_entry.setText(tag_value)
+            row_height = max(name_entry.sizeHint().height(), 28)
+            name_entry.setFixedHeight(row_height)
+            value_entry.setFixedHeight(row_height)
 
             row_layout.addWidget(name_entry, 1)
             row_layout.addWidget(value_entry, 1)
@@ -462,6 +460,7 @@ class TagApplication(QtWidgets.QMainWindow):
                     )
                 )
             for button in (submit_button, remove_button):
+                button.setFixedHeight(row_height)
                 row_layout.addWidget(button, 0)
 
             self.tag_scroll_layout.addWidget(row)
@@ -585,9 +584,9 @@ class TagApplication(QtWidgets.QMainWindow):
         if self.suggested_scroll.viewport():
             viewport_width = max(self.suggested_scroll.viewport().width(), 1)
             label_width = int(tag_label_width)
-            button_width = 18
-            available = max(viewport_width - label_width, button_width)
-            max_colour_buttons = max(1, available // (button_width + 4))
+            min_button_width = 8
+            available = max(viewport_width - label_width, min_button_width)
+            max_colour_buttons = max(1, available // min_button_width)
 
         def _is_colour_value(value):
             return value in COLOR_DATA_NAMES or value in ("any", "none")
@@ -603,6 +602,8 @@ class TagApplication(QtWidgets.QMainWindow):
             tag_entry_name = QtWidgets.QLineEdit()
             tag_entry_name.setText(tag_name)
             tag_entry_name.setFixedWidth(max_name_width)
+            row_height = max(tag_entry_name.sizeHint().height(), 28)
+            tag_entry_name.setFixedHeight(row_height)
             if priority != 0:
                 priority_fg, priority_bg = PRIORITY_COLORS[priority]
                 tag_entry_name.setStyleSheet(
@@ -612,6 +613,7 @@ class TagApplication(QtWidgets.QMainWindow):
             row_layout.addWidget(tag_entry_name, 0, QtCore.Qt.AlignLeft)
 
             if tag_values and all(_is_colour_value(v) for v in tag_values):
+                row_layout.setSpacing(0)
                 row_layout.setAlignment(QtCore.Qt.AlignLeft)
                 row_colours = list(colours)
                 if not can_fit_all_colours:
@@ -626,6 +628,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
                     tag_entry_submit = QtWidgets.QPushButton("Add")
                     tag_entry_submit.setFixedWidth(36)
+                    tag_entry_submit.setFixedHeight(row_height)
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
                     )
@@ -641,10 +644,6 @@ class TagApplication(QtWidgets.QMainWindow):
                 ):
                     row_colours = row_colours[:max_colour_buttons]
 
-                distribute_colours = can_fit_all_colours and len(row_colours) == len(
-                    colours
-                )
-
                 for idx, color_data in enumerate(row_colours):
                     tag_value = color_data[0]
                     tag_color = color_data[1]
@@ -659,7 +658,11 @@ class TagApplication(QtWidgets.QMainWindow):
                     )
 
                     tag_entry_submit = QtWidgets.QPushButton("")
-                    tag_entry_submit.setFixedSize(14, 14)
+                    tag_entry_submit.setFixedHeight(row_height)
+                    tag_entry_submit.setMinimumWidth(8)
+                    tag_entry_submit.setSizePolicy(
+                        QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+                    )
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
                     )
@@ -669,19 +672,7 @@ class TagApplication(QtWidgets.QMainWindow):
                         f"background-color: {tag_color}; padding: 0px;"
                     )
 
-                    row_layout.addWidget(tag_entry_submit, 0)
-                    if distribute_colours and idx < len(row_colours) - 1:
-                        row_layout.addSpacerItem(
-                            QtWidgets.QSpacerItem(
-                                0,
-                                0,
-                                QtWidgets.QSizePolicy.Expanding,
-                                QtWidgets.QSizePolicy.Minimum,
-                            )
-                        )
-
-                if not distribute_colours:
-                    row_layout.addStretch(1)
+                    row_layout.addWidget(tag_entry_submit, 1)
 
             else:
                 for j in range(provided_query_width):
@@ -692,6 +683,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
                     tag_entry_value = QtWidgets.QLineEdit()
                     tag_entry_value.setText(tag_value)
+                    tag_entry_value.setFixedHeight(row_height)
                     partial_cmd = partial(
                         self.update_tags,
                         name_entry=tag_entry_name,
@@ -703,6 +695,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
                     tag_entry_submit = QtWidgets.QPushButton("")
                     tag_entry_submit.setFixedWidth(14)
+                    tag_entry_submit.setFixedHeight(row_height)
                     tag_entry_submit.setStyleSheet("padding: 0px;")
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
@@ -720,6 +713,25 @@ class TagApplication(QtWidgets.QMainWindow):
             return entry.text()
         return entry.get()
 
+    def _refresh_media_scale(self):
+        if not (self.media_label and self.item):
+            return
+        if self.item.filetype != int(FileType.Image):
+            return
+        pixmap = QtGui.QPixmap(self.item.getpath())
+        if pixmap.isNull():
+            return
+        target_size = self.media_area.size()
+        if target_size.width() <= 1 or target_size.height() <= 1:
+            return
+        self.media_label.setPixmap(
+            pixmap.scaled(
+                target_size,
+                QtCore.Qt.KeepAspectRatio,
+                QtCore.Qt.SmoothTransformation,
+            )
+        )
+
     def update_tags(
         self, name_entry, value_entry, old_name, old_value, reset_tags=True, event=None
     ):
@@ -727,6 +739,8 @@ class TagApplication(QtWidgets.QMainWindow):
         new_value = self._entry_text(value_entry).strip().lower()
 
         if old_name == new_name and old_value == new_value:
+            if self.partials_to_execute:
+                self.commit_and_reload()
             return
 
         if old_name != "" and old_value != "":
@@ -783,25 +797,29 @@ class TagApplication(QtWidgets.QMainWindow):
     def add_partial(self, partial_fn, button, event=None):
         self.partials_to_execute.append(partial_fn)
         button.setStyleSheet(
-            f"color: {CONFIRMED_COLOR}; background-color: {CONFIRMED_COLOR};"
+            f"color: {CONFIRMED_COLOR}; background-color: {CONFIRMED_COLOR}; "
+            "border: 3px solid #B23A3A;"
         )
         button.setEnabled(False)
 
     def revoke_last(self):
-        if not self.last_id:
+        if not self.previous_ids:
             return
-        edit_item(self.last_id, new_state=int(FileState.NeedsTags))
+        last_id = self.previous_ids.pop()
+        edit_item(last_id, new_state=int(FileState.NeedsTags))
         self.clear_commit_and_next()
 
     def confirm(self):
         self.commit()
         edit_item(item_id=self.item_id, new_state=int(FileState.Complete))
-        self.last_id = self.item_id
+        if self.item_id is not None:
+            self.previous_ids.append(self.item_id)
+            while len(self.previous_ids) > MAX_PREVIOUS_IDS:
+                self.previous_ids.popleft()
         self.load_next_item()
 
     def delete(self):
         delete_items(item_ids=(self.item_id,))
-        self.last_id = None
         self.clear_commit_and_next()
 
     def open_item(self):

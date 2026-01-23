@@ -40,7 +40,7 @@ class ModifyApplication(QtWidgets.QMainWindow):
         self.ids = []
         self.scrollbar_y_pos = 0
 
-        self.setWindowTitle("Modify")
+        self.setWindowTitle("Modify application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()

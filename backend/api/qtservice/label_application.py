@@ -29,7 +29,7 @@ class LabelApplication(QtWidgets.QMainWindow):
         self.labels = []
         self.label_input = ""
 
-        self.setWindowTitle("Label")
+        self.setWindowTitle("Label application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()

@@ -121,7 +121,7 @@ class ViewApplication(QtWidgets.QMainWindow):
         self.page_data = []
         self.sorted_bin_metrics = []
 
-        self.setWindowTitle("View")
+        self.setWindowTitle("View application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()

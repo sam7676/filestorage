@@ -1,21 +1,25 @@
 # Agents Guide
 
 ## Project Summary
+
 - File storage system for image/video storage, browsing, and editing.
 - Interactive image cropping and labeling pipeline; use `labelplus` for secondary/missed labels.
 - Web backend (Django) + web frontend (Next.js) + desktop GUI entrypoint.
 
 ## Tech Stack
+
 - Backend: Django (Python), uses `uv` for dependency management and running commands.
 - Frontend: Next.js app (create-next-app baseline).
 - Imaging: PIL; object detection via Ultralytics YOLO.
 
 ## Repo Layout
+
 - `backend/`: Django app, API, utilities, management commands.
 - `frontend/`: Next.js web UI.
 - `README.md`: primary setup/run/test instructions.
 
 ## Setup (From README)
+
 - Run `setup.py`.
 - Install `uv` and all dependencies in `pyproject.toml`.
 - Backend:
@@ -28,6 +32,7 @@
   - Patch Next.js: edit `next/dist/server/lib/router-utils/proxy-request.js`, line 36, add `secure: false` to `HttpProxy`.
 
 ## Run Commands
+
 - Backend (web): `cd backend` then `uv run manage.py rs`
 - Tests (backend + Qt): `cd backend` then `uv run python scripts/run_tests.py --coverage`
 - Desktop GUI: `cd backend` then `uv run manage.py qtservice`
@@ -35,12 +40,14 @@
 - Frontend: `cd frontend` then `npm run dev`
 
 ## Testing Notes
+
 - Main backend test target: `manage.py test api`
 - Qt GUI tests: `uv run -m pytest api/qtservice/tests`
 - Coverage is run via `uv run python scripts/run_tests.py --coverage`.
 - Frontend coverage: `cd frontend` then `npm run test:coverage`.
 
 ## Editing Guidelines
+
 - Follow existing patterns in `backend/api` and `backend/api/utils`.
 - Keep tests deterministic; avoid network access in tests.
 - When touching image processing, keep grayscale handling in mind.
@@ -48,9 +55,11 @@
 - Ignore media storage paths; do not modify or rely on them.
 
 ## Known Quirks / Local Patches
+
 - Next.js requires a manual patch to `HttpProxy` (`secure: false`) for local dev.
 
 ## Environment Notes
+
 - `setup.py` creates a required environment variable with placeholder values to fill in.
 - Database is SQLite at `data/database.sqlite3`; agents must not touch it.
 - Python linting uses `ruff` via `uv` (no `ty` because of Django).

@@ -97,7 +97,7 @@ class CompareApplication(QtWidgets.QMainWindow):
         self.comparison_item_ids = []
         self.video_widgets = {}
 
-        self.setWindowTitle("Compare")
+        self.setWindowTitle("Compare application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()

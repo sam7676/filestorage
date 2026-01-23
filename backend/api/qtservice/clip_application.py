@@ -16,6 +16,7 @@ import vlc
 
 
 THUMBNAIL_MODE = True
+VIDEOS_TO_PLAY = 0
 
 
 class VlcVideoWidget(QtWidgets.QFrame):
@@ -100,8 +101,9 @@ class ClipApplication(QtWidgets.QMainWindow):
         self._last_nearest_item_id = None
         self._video_widgets = []
         self._screen_geometry = None
+        self.videos_to_play = VIDEOS_TO_PLAY
 
-        self.setWindowTitle("Clip")
+        self.setWindowTitle("Clip application")
         screen = QtGui.QGuiApplication.primaryScreen()
         if screen:
             geometry = screen.availableGeometry()
@@ -128,7 +130,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.setCentralWidget(root)
 
         layout = QtWidgets.QVBoxLayout(root)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
         self.items_layout = QtWidgets.QHBoxLayout()
@@ -256,7 +258,7 @@ class ClipApplication(QtWidgets.QMainWindow):
             widget.close()
         self._video_widgets = []
 
-    def _get_widget(self, item_id, frame_layout):
+    def _get_widget(self, item_id, frame_layout, align):
         item = Item.objects.filter(id=item_id).get()
         self._update_media_constraints()
 
@@ -266,19 +268,23 @@ class ClipApplication(QtWidgets.QMainWindow):
             new_width = self.max_width_of_crop
             new_height = int(round(new_width * item.height / item.width))
 
-        if item.filetype == int(FileType.Video):
+        use_video_player = (
+            item.filetype == int(FileType.Video) and self.videos_to_play > 0
+        )
+        if use_video_player:
             widget = VlcVideoWidget()
             widget.setFixedSize(new_width, new_height)
             widget.set_media(item.getpath())
             widget.play()
             widget.mousePressEvent = lambda event, item_id=item_id: start_file(item_id)
             self._video_widgets.append(widget)
+            self.videos_to_play -= 1
         elif THUMBNAIL_MODE:
             resized_image = get_thumbnail(item.id, new_width, new_height)
         else:
             resized_image = get_thumbnail(item.id, new_width, new_height)
 
-        if item.filetype != int(FileType.Video):
+        if not use_video_player:
             qimage = ImageQt.ImageQt(resized_image)
             pixmap = QtGui.QPixmap.fromImage(qimage)
             pixmap = pixmap.scaled(
@@ -301,7 +307,7 @@ class ClipApplication(QtWidgets.QMainWindow):
                 widget.setStyleSheet("background-color: #1C1D21; border: none;")
 
         widget.setStyleSheet("background-color: #1C1D21; border: none;")
-        frame_layout.addWidget(widget, 1)
+        frame_layout.addWidget(widget, 1, align)
 
         type_to_str_map = {0: "image", 1: "video"}
         type_label = QtWidgets.QLabel(type_to_str_map[item.filetype])
@@ -325,12 +331,13 @@ class ClipApplication(QtWidgets.QMainWindow):
         self._clear_video_players()
         self._clear_layout(self.left_layout)
         self._clear_layout(self.right_layout)
+        self.videos_to_play = VIDEOS_TO_PLAY
 
         self.left_item_id = self.item_id if not self.swap else self.nearest_item_id
         self.right_item_id = self.nearest_item_id if not self.swap else self.item_id
 
-        self._get_widget(self.left_item_id, self.left_layout)
-        self._get_widget(self.right_item_id, self.right_layout)
+        self._get_widget(self.left_item_id, self.left_layout, QtCore.Qt.AlignRight)
+        self._get_widget(self.right_item_id, self.right_layout, QtCore.Qt.AlignLeft)
 
         self.swap_button.setStyleSheet(
             "color: #FF0000;" if self.swap else "color: #E6E6E6;"
