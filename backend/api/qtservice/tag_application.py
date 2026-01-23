@@ -168,6 +168,9 @@ class TagApplication(QtWidgets.QMainWindow):
         # Media panel
         self.media_container = QtWidgets.QFrame()
         self.media_container.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.media_container.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         self.media_layout = QtWidgets.QVBoxLayout(self.media_container)
         self.media_layout.setContentsMargins(0, 0, 0, 0)
         self.media_layout.setSpacing(6)
@@ -189,6 +192,10 @@ class TagApplication(QtWidgets.QMainWindow):
         # Tag panel
         self.tag_container = QtWidgets.QFrame()
         self.tag_container.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.tag_container.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
+        self.tag_container.setMinimumWidth(300)
         self.tag_layout = QtWidgets.QVBoxLayout(self.tag_container)
         self.tag_layout.setContentsMargins(8, 8, 8, 8)
         self.tag_layout.setSpacing(8)
@@ -336,9 +343,9 @@ class TagApplication(QtWidgets.QMainWindow):
         self.media_container.setMinimumWidth(new_width)
         if hasattr(self, "main_layout"):
             total_width = max(self.width(), 1)
-            image_stretch = max(
-                1, int(round(min(self.widget_width / total_width, 1.0) * 100))
-            )
+            desired_ratio = min(self.widget_width / total_width, 1.0)
+            image_ratio = max(desired_ratio, 0.7)
+            image_stretch = max(1, int(round(image_ratio * 100)))
             tag_stretch = max(1, 100 - image_stretch)
             self.main_layout.setStretch(0, image_stretch)
             self.main_layout.setStretch(1, tag_stretch)
@@ -592,6 +599,7 @@ class TagApplication(QtWidgets.QMainWindow):
             tag_entry_name = QtWidgets.QLineEdit()
             tag_entry_name.setText(tag_name)
             tag_entry_name.setFixedWidth(max_name_width)
+            row_height = tag_entry_name.sizeHint().height()
             if priority != 0:
                 priority_fg, priority_bg = PRIORITY_COLORS[priority]
                 tag_entry_name.setStyleSheet(
@@ -616,6 +624,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
                     tag_entry_submit = QtWidgets.QPushButton("Add")
                     tag_entry_submit.setFixedWidth(36)
+                    tag_entry_submit.setFixedHeight(row_height)
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
                     )
@@ -645,7 +654,7 @@ class TagApplication(QtWidgets.QMainWindow):
                     )
 
                     tag_entry_submit = QtWidgets.QPushButton("")
-                    tag_entry_submit.setFixedHeight(14)
+                    tag_entry_submit.setFixedHeight(row_height)
                     tag_entry_submit.setMinimumWidth(8)
                     tag_entry_submit.setSizePolicy(
                         QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
@@ -681,6 +690,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
                     tag_entry_submit = QtWidgets.QPushButton("")
                     tag_entry_submit.setFixedWidth(14)
+                    tag_entry_submit.setFixedHeight(row_height)
                     tag_entry_submit.setStyleSheet("padding: 0px;")
                     tag_entry_submit.clicked.connect(
                         partial(self.add_partial, partial_cmd, tag_entry_submit)
