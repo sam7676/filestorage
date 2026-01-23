@@ -795,7 +795,7 @@ class TagApplication(QtWidgets.QMainWindow):
         self.partials_to_execute.append(partial_fn)
         button.setStyleSheet(
             f"color: {CONFIRMED_COLOR}; background-color: {CONFIRMED_COLOR}; "
-            "border: 1px solid #B23A3A;"
+            "border: 3px solid #B23A3A;"
         )
         button.setEnabled(False)
 

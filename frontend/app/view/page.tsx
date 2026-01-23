@@ -354,6 +354,25 @@ export default function View() {
     loadMedia('image');
   }, []);
 
+  useEffect(() => {
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+    const handleResize = () => {
+      if (resizeTimer) {
+        clearTimeout(resizeTimer);
+      }
+      resizeTimer = setTimeout(() => {
+        window.location.reload();
+      }, 150);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      if (resizeTimer) {
+        clearTimeout(resizeTimer);
+      }
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   // Cleanup URL on unmount
   useEffect(() => {
     return () => {
