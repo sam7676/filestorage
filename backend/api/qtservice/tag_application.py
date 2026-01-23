@@ -320,7 +320,11 @@ class TagApplication(QtWidgets.QMainWindow):
         container_height = self.media_container.height()
         if container_height <= 0 and self._screen_geometry:
             container_height = int(self._screen_geometry.height() * 0.7)
-        max_height = max(container_height - 60, 200)
+        button_hint = self.confirm_button.sizeHint().height()
+        layout_margins = self.media_layout.contentsMargins()
+        layout_padding = layout_margins.top() + layout_margins.bottom()
+        layout_padding += max(self.media_layout.spacing(), 0)
+        max_height = max(container_height - (button_hint + layout_padding), 200)
 
         new_width = int(round(self.item.width * max_height / self.item.height))
         new_height = max_height
@@ -329,6 +333,7 @@ class TagApplication(QtWidgets.QMainWindow):
             new_height = int(round(new_width * self.item.height / self.item.width))
         self.widget_width = new_width
         self.widget_height = new_height
+        self.media_container.setMinimumWidth(new_width)
         if hasattr(self, "main_layout"):
             total_width = max(self.width(), 1)
             image_stretch = max(
@@ -363,6 +368,7 @@ class TagApplication(QtWidgets.QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        self._estimate_widget_size()
         self._refresh_media_scale()
         if self.item:
             self._resize_timer.start()
