@@ -49,6 +49,7 @@ export default function View() {
   const [storedTuples, setStoredTuples] = useState<Tuple[]>([]);
 
   const [queueSize, setQueueSize] = useState<number>(DEFAULT_QUEUE_SIZE);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
 
   const swipeHandlers = useSwipe({
     onSwipedLeft: () => loadMedia('video'),
@@ -58,10 +59,15 @@ export default function View() {
   let maxHeight = 676;
   let maxWidth = 400;
 
-  try {
-    maxHeight = window.innerHeight - 16 || 676;
-    maxWidth = window.innerWidth - 16 || 400;
-  } catch (e) {}
+  if (viewportSize.height > 0 && viewportSize.width > 0) {
+    maxHeight = viewportSize.height - 16 || 676;
+    maxWidth = viewportSize.width - 16 || 400;
+  } else {
+    try {
+      maxHeight = window.innerHeight - 16 || 676;
+      maxWidth = window.innerWidth - 16 || 400;
+    } catch (e) {}
+  }
 
   const backgroundColor = '#1F1F1F';
   const loadingColor = '#000000';
@@ -356,22 +362,46 @@ export default function View() {
 
   useEffect(() => {
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+    const updateViewport = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+      setCurrentUrl(null);
+      setCurrentType(null);
+      setCurrentId(null);
+      setCurrentWidth(0);
+      setCurrentHeight(0);
+      setImageQueue([]);
+      setVideoQueue([]);
+      setStoredTuples([]);
+    };
     const handleResize = () => {
       if (resizeTimer) {
         clearTimeout(resizeTimer);
       }
       resizeTimer = setTimeout(() => {
-        window.location.reload();
-      }, 150);
+        updateViewport();
+        loadMedia('image');
+      }, 200);
     };
+    updateViewport();
     window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
     return () => {
       if (resizeTimer) {
         clearTimeout(resizeTimer);
       }
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
     };
-  }, []);
+  }, [loadMedia]);
 
   // Cleanup URL on unmount
   useEffect(() => {
