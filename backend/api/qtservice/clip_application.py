@@ -130,7 +130,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.setCentralWidget(root)
 
         layout = QtWidgets.QVBoxLayout(root)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
         self.items_layout = QtWidgets.QHBoxLayout()
