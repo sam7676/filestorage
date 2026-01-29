@@ -14,12 +14,11 @@ from collections import defaultdict
 from api.views_extension import (
     upload_image,
     upload_video,
-    TagConditions,
     delete_items,
     get_items_and_paths_from_tags,
     TAG_STYLE_OPTIONS,
 )
-from api.models import FileState, FileType
+from api.models import FileState, FileType, TagConditions
 from django.http import FileResponse, HttpResponseBadRequest
 from api.utils.overrides import override_random_item
 from collections import Counter
@@ -153,6 +152,7 @@ class RandomItem(APIView):
             ]
 
             tags = override_random_item(tags, filetype)
+            random_strength = 2
 
             for k, v in tags.items():
                 # Gathering distinct
@@ -169,6 +169,9 @@ class RandomItem(APIView):
                 elif k[0] == "random":
                     tags.pop(k)
                     random_selection_method = v[0]
+                elif k[0] == "randomstrength":
+                    tags.pop(k)
+                    random_strength = float(v[0])
 
             items = get_items_and_paths_from_tags(tags)
 
@@ -183,8 +186,10 @@ class RandomItem(APIView):
                 # Take 10,000 items
                 # The most recent has score 1/5000
                 # The least recent has score 1/15000 - a 3x decrease
+                # for random strength 2.
+                # For random strength 4, we have 1/2500 and 1/12500 so a 5x decrease.
 
-                weights = [1 / (3 * len(keys) / 2 - i) for i in range(len(keys))]
+                weights = [1 / ((random_strength + 1) * len(keys) / random_strength - i) for i in range(len(keys))]
 
             elif random_selection_method == "sparse":
                 # Want to assign smaller weights to items from large classes

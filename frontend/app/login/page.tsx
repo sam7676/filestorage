@@ -40,6 +40,10 @@ export default function Login() {
   ) => {
     signIn(formData);
   };
+  
+    try {
+    document.body.style.backgroundColor = '#FFFFFF';
+  } catch (e) {}
 
   return <div>{CredentialsSignInPage(signInClient)}</div>;
 }

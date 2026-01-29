@@ -18,7 +18,7 @@ if not os.path.exists(backend_env_path):
         f.writelines(lines)
 
 override_code = """
-from api.views_extension import TagConditions
+from api.models import TagConditions
 
 def override_random_item(tags, filetype):
     return tags
@@ -30,6 +30,9 @@ def get_view_default_tags():
             ("state", "complete"): TagConditions.Is.value,
             ("_", "_"): TagConditions.Is.value,
         }
+        
+def add_tag_override(id_to_tag_dictionary):
+    return id_to_tag_dictionary
 
 SERVICE_REQUIRED_TAGS = ()
 
