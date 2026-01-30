@@ -24,7 +24,7 @@ Set `READER_PATHS` in `.env` to one or more ingest directories separated by your
 
 Frontend set-up
 ```
-cd ../frontend
+cd frontend
 npm install
 ```
 Modify the `Next.js` library to disable certificate verification, lets us run `https` locally.
