@@ -45,7 +45,7 @@ def test_add_tags_clears_selection(monkeypatch, multitag_window):
     multitag_window.add_tags_to_selected()
 
     assert called
-    assert multitag_window.selected_ids == set()
+    assert multitag_window.selected_ids == {1}
 
 
 def test_no_items_completes(monkeypatch, qtbot):

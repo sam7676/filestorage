@@ -20,6 +20,7 @@ from api.models import (
     Tags,
     get_file_properties,
     Rules,
+    TagConditions,
 )
 import os
 from api.utils.process_images import (
@@ -33,16 +34,7 @@ from api.utils.key_paths import UNPROCESSED_PATH
 import torch
 from transformers import CLIPProcessor, CLIPModel
 from pathlib import Path
-
-
-class TagConditions(Enum):
-    Is = "is"
-    IsNot = "is not"
-    Contains = "contains"
-    DoesNotContain = "does not contain"
-    IsNull = "is null"
-    IsNotNull = "is not null"
-
+from api.utils.overrides import add_tag_override
 
 TAG_STYLE_OPTIONS = (
     TagConditions.Is.value,
@@ -333,6 +325,8 @@ def add_tags(id_to_tag_dictionary):
         },
     }
     """
+
+    id_to_tag_dictionary = add_tag_override(id_to_tag_dictionary)
 
     for item_id, tag_dict in id_to_tag_dictionary.items():
         for tag_name, tag_values in tag_dict.items():

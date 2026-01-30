@@ -40,7 +40,7 @@ def qtservice():
     while command != "exit":
         command = (
             input(
-                "Enter command:\n1: Process media\n2: Clip application\n3: Tag application\n4: Compare application\n5: Viewer application\n+: "
+                "Enter command:\n1: Process media\n2: Tag application\n3: Compare application\n4: Viewer application\n+: "
             )
             .lower()
             .strip()
@@ -63,7 +63,7 @@ def qtservice():
                 # Work through check functions
                 for i in range(min(idx, len(check_fns))):
                     if check_fns[i]():
-                        t = fns[i]()
+                        fns[i]()
 
                 t, complete = fns[idx]()
 
@@ -72,22 +72,22 @@ def qtservice():
 
             ClipModel.process_unclipped_items()
 
+            if t:
+                t, complete = start_clip_application()
+
+            if t:
+                t, complete = start_tag_application()
+
         if command == "1+":
             start_multitag_application()
 
         if command == "2":
-            start_clip_application()
-
-        if command == "3":
-            start_tag_application()
-
-        if command == "3+":
             start_tag_application(tag_random=True)
 
-        if command == "4":
+        if command == "3":
             start_compare_application()
 
-        if command == "5":
+        if command == "4":
             start_view_application()
 
         print()

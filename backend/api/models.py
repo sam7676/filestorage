@@ -1,5 +1,5 @@
 from django.db import models
-from enum import IntEnum
+from enum import IntEnum, Enum
 from api.utils.key_paths import MEDIA_PATH
 from pathlib import Path
 
@@ -16,6 +16,15 @@ class FileState(IntEnum):
 class FileType(IntEnum):
     Image = 0
     Video = 1
+
+
+class TagConditions(Enum):
+    Is = "is"
+    IsNot = "is not"
+    Contains = "contains"
+    DoesNotContain = "does not contain"
+    IsNull = "is null"
+    IsNotNull = "is not null"
 
 
 class Item(models.Model):

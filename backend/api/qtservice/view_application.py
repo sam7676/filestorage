@@ -1,5 +1,4 @@
 from api.views_extension import (
-    TagConditions,
     get_thumbnail,
     get_items_and_paths_from_tags,
     get_tag,
@@ -8,7 +7,7 @@ from api.views_extension import (
     delete_items,
     edit_item,
 )
-from api.models import Item, FileType, FileState
+from api.models import Item, FileType, FileState, TagConditions
 from collections import defaultdict
 from functools import partial
 import random
@@ -100,9 +99,9 @@ class ViewApplication(QtWidgets.QMainWindow):
         self.completed = False
 
         self.items_per_bin = 0
-        self.items_per_window = 2
+        self.items_per_window = 1
         self.page_increment_rate = 1
-        self.max_bin_videos = 1
+        self.max_bin_videos = 2
         self.videos_currently_played = VIDEOS_CURRENTLY_PLAYED
 
         self.item_ids = []

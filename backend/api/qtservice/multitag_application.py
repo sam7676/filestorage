@@ -4,12 +4,11 @@ from api.views_extension import (
     check_for_unlabelled,
     get_all_labels,
     get_untagged_ids,
-    TagConditions,
     TAG_STYLE_OPTIONS,
     get_thumbnail,
     add_tags,
 )
-from api.models import Item
+from api.models import Item, TagConditions
 from functools import partial
 import math
 import sys
@@ -326,6 +325,14 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             if col >= columns:
                 row += 1
                 col = 0
+
+        if len(self.ids) == 1:
+            item_id = self.ids[0]
+            self.id_data[item_id]["selected"] = True
+            self.selected_ids.add(item_id)
+
+            button = self.id_data[item_id]["buttons"]["check"]
+            self._set_select_button_style(button, self.id_data[item_id]["selected"])
 
         self.page_label.setText(
             f"{self.page + 1} / {self.max_page}" if self.max_page else "0 / 0"
