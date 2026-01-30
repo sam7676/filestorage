@@ -189,7 +189,10 @@ class RandomItem(APIView):
                 # for random strength 2.
                 # For random strength 4, we have 1/2500 and 1/12500 so a 5x decrease.
 
-                weights = [1 / ((random_strength + 1) * len(keys) / random_strength - i) for i in range(len(keys))]
+                weights = [
+                    1 / ((random_strength + 1) * len(keys) / random_strength - i)
+                    for i in range(len(keys))
+                ]
 
             elif random_selection_method == "sparse":
                 # Want to assign smaller weights to items from large classes

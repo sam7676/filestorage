@@ -325,7 +325,7 @@ def add_tags(id_to_tag_dictionary):
         },
     }
     """
-    
+
     id_to_tag_dictionary = add_tag_override(id_to_tag_dictionary)
 
     for item_id, tag_dict in id_to_tag_dictionary.items():

@@ -260,12 +260,12 @@ class LabelApplication(QtWidgets.QMainWindow):
             if col >= columns:
                 row += 1
                 col = 0
-                
+
         if len(self.ids) == 1:
             item_id = self.ids[0]
             self.id_data[item_id]["selected"] = True
             self.selected_ids.add(item_id)
-            
+
             button = self.id_data[item_id]["buttons"]["check"]
             self._set_select_button_style(button, self.id_data[item_id]["selected"])
 

@@ -106,6 +106,8 @@ def test_videos_currently_played_limits_playback(monkeypatch, qtbot):
     window = view_app.ViewApplication()
     qtbot.addWidget(window)
     window.orderby_metric = "id"
+    window.items_per_window = 2
+    window.max_bin_videos = 0
     window.videos_currently_played = 1
     window.get_ids_and_build_bins()
 

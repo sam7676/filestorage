@@ -71,10 +71,10 @@ def qtservice():
                     idx += 1
 
             ClipModel.process_unclipped_items()
-            
+
             if t:
                 t, complete = start_clip_application()
-            
+
             if t:
                 t, complete = start_tag_application()
 

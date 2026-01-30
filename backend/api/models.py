@@ -16,7 +16,8 @@ class FileState(IntEnum):
 class FileType(IntEnum):
     Image = 0
     Video = 1
-    
+
+
 class TagConditions(Enum):
     Is = "is"
     IsNot = "is not"
