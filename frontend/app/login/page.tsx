@@ -40,8 +40,8 @@ export default function Login() {
   ) => {
     signIn(formData);
   };
-  
-    try {
+
+  try {
     document.body.style.backgroundColor = '#FFFFFF';
   } catch (e) {}
 
