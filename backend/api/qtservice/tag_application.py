@@ -849,7 +849,7 @@ class StaticEntry:
 def start_tag_application(tag_random=False):
     if get_next_tag_item(tag_random) is None:
         return True, True
-    
+
     app = QtWidgets.QApplication.instance()
     if app is None:
         app = QtWidgets.QApplication(sys.argv)

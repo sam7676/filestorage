@@ -19,10 +19,13 @@ def label_window(tmp_path, monkeypatch, qtbot):
     _make_image(tmp_path)
     monkeypatch.setattr(label_app, "get_top_x_unlabelled_ids", lambda *a, **k: [1])
     monkeypatch.setattr(label_app, "get_all_labels", lambda *a, **k: [{"label": "cat"}])
-    monkeypatch.setattr(
-        label_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
-    )
     monkeypatch.setattr(label_app, "edit_item", lambda *a, **k: None)
+
+    class _FakeThumbnailCache:
+        def __getitem__(self, _item_id):
+            return Image.new("RGB", (10, 10))
+
+    monkeypatch.setattr(label_app, "thumbnail_cache", _FakeThumbnailCache())
 
     window = label_app.LabelApplication()
     qtbot.addWidget(window)

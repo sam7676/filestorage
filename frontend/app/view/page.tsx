@@ -93,8 +93,8 @@ export default function View() {
       fittedHeight = Math.round((fittedHeight * maxWidth) / fittedWidth);
       fittedWidth = maxWidth;
     }
-    
-    fittedWidth = Math.max(fittedWidth, minWidth)
+
+    fittedWidth = Math.max(fittedWidth, minWidth);
 
     return { width: fittedWidth, height: fittedHeight };
   }

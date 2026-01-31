@@ -5,7 +5,6 @@ from api.views_extension import (
     check_for_modify,
     check_for_unlabelled,
     check_for_clips,
-    
 )
 from api.qtservice.crop_application import start_crop_application
 from api.qtservice.label_application import start_label_application
@@ -51,7 +50,12 @@ def qtservice():
             t = True
             idx = 0
 
-            check_fns = (check_for_crops, check_for_modify, check_for_unlabelled, check_for_clips)
+            check_fns = (
+                check_for_crops,
+                check_for_modify,
+                check_for_unlabelled,
+                check_for_clips,
+            )
 
             fns = [
                 start_crop_application,
@@ -72,8 +76,6 @@ def qtservice():
 
                 if not (idx == len(fns) - 1 and not complete):
                     idx += 1
-
-           
 
         if command == "1m":
             start_multitag_application()

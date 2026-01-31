@@ -376,9 +376,8 @@ class ClipApplication(QtWidgets.QMainWindow):
 
 
 def start_clip_application():
-    
     ClipModel.process_unclipped_items()
-    
+
     if get_next_clip_item() is None:
         return True, True
     app = QtWidgets.QApplication.instance()
