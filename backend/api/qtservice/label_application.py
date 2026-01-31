@@ -165,9 +165,7 @@ class LabelApplication(QtWidgets.QMainWindow):
         for item_id in self.ids:
             if item_id in self.id_data:
                 continue
-            thumbnail = get_thumbnail(item_id)
             self.id_data[item_id] = {
-                "thumbnail": thumbnail,
                 "selected": False,
                 "batch_toggled": False,
             }
@@ -201,7 +199,7 @@ class LabelApplication(QtWidgets.QMainWindow):
         if not self.ids:
             return
 
-        first_thumb = self.id_data[self.ids[0]]["thumbnail"]
+        first_thumb = thumbnail_cache[self.ids[0]]
         target_side = max(first_thumb.width, first_thumb.height)
         columns = self._compute_columns(target_side)
 
@@ -214,7 +212,7 @@ class LabelApplication(QtWidgets.QMainWindow):
             frame_layout.setContentsMargins(4, 4, 4, 4)
             frame_layout.setSpacing(4)
 
-            thumbnail = self.id_data[item_id]["thumbnail"]
+            thumbnail = thumbnail_cache[item_id]
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)
             pixmap = QtGui.QPixmap.fromImage(qimage)

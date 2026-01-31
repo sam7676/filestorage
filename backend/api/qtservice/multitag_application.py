@@ -7,12 +7,14 @@ from api.views_extension import (
     TAG_STYLE_OPTIONS,
     get_thumbnail,
     add_tags,
+    thumbnail_cache,
 )
 from api.models import Item, TagConditions
 from functools import partial
 import math
 import sys
 import os
+from collections import deque
 
 from PIL import Image, ImageQt
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -21,7 +23,11 @@ from PySide6 import QtCore, QtGui, QtWidgets
 DEFAULT_CARD_PADDING = 8
 THUMBNAIL_BG = (28, 29, 33)
 ITEMS_PER_PAGE = 100
+THUMBNAIL_CACHE_SIZE = 1000
 
+
+        
+        
 
 class MultiTagApplication(QtWidgets.QMainWindow):
     def __init__(self, tag_names=None):
@@ -241,9 +247,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         for item_id in self.ids:
             if item_id in self.id_data:
                 continue
-            thumbnail = get_thumbnail(item_id)
             self.id_data[item_id] = {
-                "thumbnail": thumbnail,
                 "selected": False,
                 "batch_toggled": False,
             }
@@ -266,7 +270,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.page_label.setText("0 / 0")
             return
 
-        first_thumb = self.id_data[ids[0]]["thumbnail"]
+        first_thumb = thumbnail_cache[ids[0]]
         target_side = max(first_thumb.width, first_thumb.height)
         columns = self._compute_columns(target_side)
 
@@ -278,8 +282,10 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             card_layout = QtWidgets.QVBoxLayout(card)
             card_layout.setContentsMargins(4, 4, 4, 4)
             card_layout.setSpacing(4)
+            
 
-            thumbnail = first_thumb if i == 0 else self.id_data[item_id]["thumbnail"]
+            thumbnail = first_thumb if i == 0 else thumbnail_cache[item_id]
+
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)
             pixmap = QtGui.QPixmap.fromImage(qimage)
