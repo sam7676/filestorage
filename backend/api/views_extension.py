@@ -35,6 +35,7 @@ import torch
 from transformers import CLIPProcessor, CLIPModel
 from pathlib import Path
 from api.utils.overrides import add_tag_override
+from collections import deque
 
 TAG_STYLE_OPTIONS = (
     TagConditions.Is.value,
@@ -46,6 +47,7 @@ TAG_STYLE_OPTIONS = (
 )
 
 DEFAULT_THUMBNAIL_SIZE = 200
+THUMBNAIL_CACHE_SIZE = 1000
 
 
 def get_next_crop_item(crop_max_height):

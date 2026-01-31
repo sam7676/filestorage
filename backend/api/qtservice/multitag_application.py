@@ -23,7 +23,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 DEFAULT_CARD_PADDING = 8
 THUMBNAIL_BG = (28, 29, 33)
 ITEMS_PER_PAGE = 100
-THUMBNAIL_CACHE_SIZE = 1000
+
 
 
         
