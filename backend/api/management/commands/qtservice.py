@@ -4,7 +4,8 @@ from api.views_extension import (
     check_for_crops,
     check_for_modify,
     check_for_unlabelled,
-    ClipModel,
+    check_for_clips,
+    
 )
 from api.qtservice.crop_application import start_crop_application
 from api.qtservice.label_application import start_label_application
@@ -40,7 +41,7 @@ def qtservice():
     while command != "exit":
         command = (
             input(
-                "Enter command:\n1: Process media\n2: Tag application\n3: Compare application\n4: Viewer application\n+: "
+                "Enter command:\n1: Process media\n2: Compare application\n3: Viewer application\n+: "
             )
             .lower()
             .strip()
@@ -50,13 +51,15 @@ def qtservice():
             t = True
             idx = 0
 
-            check_fns = (check_for_crops, check_for_modify, check_for_unlabelled)
+            check_fns = (check_for_crops, check_for_modify, check_for_unlabelled, check_for_clips)
 
             fns = [
                 start_crop_application,
                 start_modify_application,
                 start_label_application,
+                start_clip_application,
                 partial(start_multitag_application, SERVICE_REQUIRED_TAGS),
+                start_tag_application,
             ]
 
             while t and idx < len(fns):
@@ -70,24 +73,18 @@ def qtservice():
                 if not (idx == len(fns) - 1 and not complete):
                     idx += 1
 
-            ClipModel.process_unclipped_items()
+           
 
-            if t:
-                t, complete = start_clip_application()
-
-            if t:
-                t, complete = start_tag_application()
-
-        if command == "1+":
+        if command == "1m":
             start_multitag_application()
 
-        if command == "2":
+        if command == "1t":
             start_tag_application(tag_random=True)
 
-        if command == "3":
+        if command == "2":
             start_compare_application()
 
-        if command == "4":
+        if command == "3":
             start_view_application()
 
         print()

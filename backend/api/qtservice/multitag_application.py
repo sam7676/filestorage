@@ -23,7 +23,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 DEFAULT_CARD_PADDING = 8
 THUMBNAIL_BG = (28, 29, 33)
 ITEMS_PER_PAGE = 100
-
+FAST_ITEMS_PER_PAGE = 10
 
 
         
@@ -41,7 +41,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.ids_set = set()
         self.page = 0
         self.max_page = 0
-        self.items_per_page = ITEMS_PER_PAGE
+        self.items_per_page = ITEMS_PER_PAGE if tag_names is not None else FAST_ITEMS_PER_PAGE
         self.selected_ids = set()
         self.id_data = {}
         self.chosen_tags = {}
@@ -192,7 +192,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.items_per_page_button.clicked.connect(self.update_items_per_page)
         self.page_button.clicked.connect(self.update_page)
         self.tag_name_button.clicked.connect(self.edit_tagname)
-        self.tag_value_button.clicked.connect(self.add_tags_to_selected)
+        self.tag_value_button.clicked.connect(partial(self.add_tags_to_selected, None)) # Qt calls with the argument False seemingly
 
         QtGui.QShortcut(QtGui.QKeySequence("Up"), self, activated=self.decrement_page)
         QtGui.QShortcut(QtGui.QKeySequence("Down"), self, activated=self.increment_page)
@@ -290,6 +290,11 @@ class MultiTagApplication(QtWidgets.QMainWindow):
 
         row = 0
         col = 0
+        
+        if len(self.ids) == 1:
+            item_id = self.ids[0]
+            self.id_data[item_id]["selected"] = True
+            self.selected_ids.add(item_id)
 
         for i, item_id in enumerate(ids):
             card = QtWidgets.QFrame()
@@ -319,6 +324,9 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             controls.setSpacing(4)
             batch_button = QtWidgets.QPushButton("Batch")
             select_button = QtWidgets.QPushButton("Select")
+            self._set_batch_button_style(batch_button, self.id_data[item_id]["batch_toggled"])
+            self._set_select_button_style(select_button, self.id_data[item_id]["selected"])
+            
             id_label = QtWidgets.QLabel(str(item_id))
             id_label.setAlignment(QtCore.Qt.AlignCenter)
 
@@ -345,14 +353,6 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             if col >= columns:
                 row += 1
                 col = 0
-
-        if len(self.ids) == 1:
-            item_id = self.ids[0]
-            self.id_data[item_id]["selected"] = True
-            self.selected_ids.add(item_id)
-
-            button = self.id_data[item_id]["buttons"]["check"]
-            self._set_select_button_style(button, self.id_data[item_id]["selected"])
 
         self.page_label.setText(
             f"{self.page + 1} / {self.max_page}" if self.max_page else "0 / 0"
@@ -574,12 +574,15 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.id_data[item_id]["selected"] = True
             self.id_data[item_id]["batch_toggled"] = False
             self.selected_ids.add(item_id)
-            self._set_select_button_style(
-                self.id_data[item_id]["buttons"]["check"], True
-            )
-            self._set_batch_button_style(
-                self.id_data[item_id]["buttons"]["batch"], False
-            )
+            
+            if "buttons" in self.id_data[item_id]:
+                self._set_select_button_style(
+                    self.id_data[item_id]["buttons"]["check"], True
+                )
+                self._set_batch_button_style(
+                    self.id_data[item_id]["buttons"]["batch"], False
+                )
+
 
     def deselect_all(self):
         for item_id in self.ids:
@@ -594,14 +597,18 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.selected_ids = set()
 
     def add_tags_to_selected(self, value=None):
+       
+        
         if value is None:
             new_value = self.tag_value_entry.text().strip().lower()
         else:
             new_value = str(value).strip().lower()
+        
+         
         if new_value == "":
             return
         add_tags(
-            {item_id: {self.tag_name: [new_value]} for item_id in self.selected_ids}
+            {item_id: {self.tag_name: [new_value, ]} for item_id in self.selected_ids}
         )
         for item_id in self.selected_ids:
             self.id_data.pop(item_id, None)

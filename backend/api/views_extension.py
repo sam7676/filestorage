@@ -592,6 +592,7 @@ def get_top_x_needsmodify_ids(x):
     ]
 
 
+
 def get_untagged_ids(tag_name, tags_dict):
     # IDs where they are untagged w.r.t the tag name and satisfying constraints in tags_dict
     tags = defaultdict(list)
@@ -704,6 +705,9 @@ def check_for_modify():
 
 def check_for_unlabelled():
     return len(Item.objects.filter(state=int(FileState.NeedsLabel))) > 0
+    
+def check_for_clips():
+    return len(Item.objects.filter(state=int(FileState.NeedsClip))) > 0
 
 
 class ClipModel:

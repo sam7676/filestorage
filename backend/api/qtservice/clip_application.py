@@ -5,6 +5,7 @@ from api.views_extension import (
     edit_item,
     delete_items,
     start_file,
+    ClipModel,
 )
 from api.models import Item, FileType, FileState
 from functools import partial
@@ -15,7 +16,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import vlc
 
 
-THUMBNAIL_MODE = True
 VIDEOS_TO_PLAY = 0
 
 
@@ -249,8 +249,6 @@ class ClipApplication(QtWidgets.QMainWindow):
             item = layout.takeAt(0)
             widget = item.widget()
             if widget:
-                if isinstance(widget, VlcVideoWidget):
-                    widget.close()
                 widget.deleteLater()
 
     def _clear_video_players(self):
@@ -276,11 +274,8 @@ class ClipApplication(QtWidgets.QMainWindow):
             widget.setFixedSize(new_width, new_height)
             widget.set_media(item.getpath())
             widget.play()
-            widget.mousePressEvent = lambda event, item_id=item_id: start_file(item_id)
             self._video_widgets.append(widget)
             self.videos_to_play -= 1
-        elif THUMBNAIL_MODE:
-            resized_image = get_thumbnail(item.id, new_width, new_height)
         else:
             resized_image = get_thumbnail(item.id, new_width, new_height)
 
@@ -381,6 +376,9 @@ class ClipApplication(QtWidgets.QMainWindow):
 
 
 def start_clip_application():
+    
+    ClipModel.process_unclipped_items()
+    
     if get_next_clip_item() is None:
         return True, True
     app = QtWidgets.QApplication.instance()

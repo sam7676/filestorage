@@ -3,6 +3,7 @@ from api.views_extension import (
     get_all_labels,
     get_thumbnail,
     edit_item,
+    thumbnail_cache,
 )
 from api.models import FileState
 from functools import partial
@@ -206,6 +207,11 @@ class LabelApplication(QtWidgets.QMainWindow):
 
         row = 0
         col = 0
+        
+        if len(self.ids) == 1:
+            item_id = self.ids[0]
+            self.id_data[item_id]["selected"] = True
+            self.selected_ids.add(item_id)
 
         for i, item_id in enumerate(self.ids):
             frame = QtWidgets.QFrame()
@@ -238,6 +244,9 @@ class LabelApplication(QtWidgets.QMainWindow):
 
             batch_button.clicked.connect(partial(self.select_batch, item_id))
             select_button.clicked.connect(partial(self.select_item, item_id))
+           
+            self._set_batch_button_style(batch_button, self.id_data[item_id]["batch_toggled"])
+            self._set_select_button_style(select_button, self.id_data[item_id]["selected"])
 
             self.id_data[item_id]["buttons"] = {
                 "check": select_button,
@@ -260,13 +269,7 @@ class LabelApplication(QtWidgets.QMainWindow):
                 row += 1
                 col = 0
 
-        if len(self.ids) == 1:
-            item_id = self.ids[0]
-            self.id_data[item_id]["selected"] = True
-            self.selected_ids.add(item_id)
-
-            button = self.id_data[item_id]["buttons"]["check"]
-            self._set_select_button_style(button, self.id_data[item_id]["selected"])
+        
 
     def _scroll_to_top(self):
         if self.scroll_area and self.scroll_area.verticalScrollBar():
