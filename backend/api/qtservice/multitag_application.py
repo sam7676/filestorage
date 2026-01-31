@@ -3,10 +3,12 @@ from api.views_extension import (
     check_for_modify,
     check_for_unlabelled,
     get_all_labels,
+    get_distinct_tags,
     get_untagged_ids,
     TAG_STYLE_OPTIONS,
     get_thumbnail,
     add_tags,
+    thumbnail_cache,
 )
 from api.models import Item, TagConditions
 from functools import partial
@@ -21,6 +23,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 DEFAULT_CARD_PADDING = 8
 THUMBNAIL_BG = (28, 29, 33)
 ITEMS_PER_PAGE = 100
+FAST_ITEMS_PER_PAGE = 10
 
 
 class MultiTagApplication(QtWidgets.QMainWindow):
@@ -35,11 +38,15 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.ids_set = set()
         self.page = 0
         self.max_page = 0
-        self.items_per_page = ITEMS_PER_PAGE
+        self.items_per_page = (
+            ITEMS_PER_PAGE if tag_names is not None else FAST_ITEMS_PER_PAGE
+        )
         self.selected_ids = set()
         self.id_data = {}
         self.chosen_tags = {}
         self.labels = []
+        self.tag_values = []
+        self.tag_value_input = ""
 
         self.setWindowTitle("Multitag application")
         screen = QtGui.QGuiApplication.primaryScreen()
@@ -147,6 +154,14 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         tag_value_label = QtWidgets.QLabel("Tag value")
         self.tag_value_entry = QtWidgets.QLineEdit()
         self.tag_value_button = QtWidgets.QPushButton("Add")
+        self.tag_value_entry.textChanged.connect(self.on_tag_value_change)
+
+        suggested_label = QtWidgets.QLabel("Suggested values")
+        suggested_label.setStyleSheet("font-weight: bold;")
+        self.results_container = QtWidgets.QWidget()
+        self.results_layout = QtWidgets.QVBoxLayout(self.results_container)
+        self.results_layout.setContentsMargins(0, 0, 0, 0)
+        self.results_layout.setSpacing(4)
 
         right_layout.addWidget(tag_name_label)
         right_layout.addWidget(self.tag_name_entry)
@@ -154,6 +169,8 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         right_layout.addWidget(tag_value_label)
         right_layout.addWidget(self.tag_value_entry)
         right_layout.addWidget(self.tag_value_button)
+        right_layout.addWidget(suggested_label)
+        right_layout.addWidget(self.results_container, 1)
 
         self.tags_scroll = QtWidgets.QScrollArea()
         self.tags_scroll.setWidgetResizable(True)
@@ -164,7 +181,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.tags_layout.setSpacing(4)
         self.tags_scroll.setWidget(self.tags_scroll_contents)
 
-        right_layout.addWidget(self.tags_scroll, 1)
+        right_layout.addWidget(self.tags_scroll, 2)
 
         layout.addWidget(left_panel, 4)
         layout.addWidget(right_panel, 1)
@@ -174,7 +191,9 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.items_per_page_button.clicked.connect(self.update_items_per_page)
         self.page_button.clicked.connect(self.update_page)
         self.tag_name_button.clicked.connect(self.edit_tagname)
-        self.tag_value_button.clicked.connect(self.add_tags_to_selected)
+        self.tag_value_button.clicked.connect(
+            partial(self.add_tags_to_selected, None)
+        )  # Qt calls with the argument False seemingly
 
         QtGui.QShortcut(QtGui.QKeySequence("Up"), self, activated=self.decrement_page)
         QtGui.QShortcut(QtGui.QKeySequence("Down"), self, activated=self.increment_page)
@@ -233,6 +252,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             item["label"] for item in get_all_labels() if item["label"] != ""
         ]
         self.labels.sort()
+        self._load_tag_values()
 
         if not self.ids:
             self.load_next_tag()
@@ -241,15 +261,14 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         for item_id in self.ids:
             if item_id in self.id_data:
                 continue
-            thumbnail = get_thumbnail(item_id)
             self.id_data[item_id] = {
-                "thumbnail": thumbnail,
                 "selected": False,
                 "batch_toggled": False,
             }
 
         self.load_images()
         self.load_tags()
+        self.on_tag_value_change()
 
     def load_images(self):
         while self.scroll_layout.count():
@@ -266,12 +285,17 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.page_label.setText("0 / 0")
             return
 
-        first_thumb = self.id_data[ids[0]]["thumbnail"]
+        first_thumb = thumbnail_cache[ids[0]]
         target_side = max(first_thumb.width, first_thumb.height)
         columns = self._compute_columns(target_side)
 
         row = 0
         col = 0
+
+        if len(self.ids) == 1:
+            item_id = self.ids[0]
+            self.id_data[item_id]["selected"] = True
+            self.selected_ids.add(item_id)
 
         for i, item_id in enumerate(ids):
             card = QtWidgets.QFrame()
@@ -279,7 +303,8 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             card_layout.setContentsMargins(4, 4, 4, 4)
             card_layout.setSpacing(4)
 
-            thumbnail = first_thumb if i == 0 else self.id_data[item_id]["thumbnail"]
+            thumbnail = first_thumb if i == 0 else thumbnail_cache[item_id]
+
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)
             pixmap = QtGui.QPixmap.fromImage(qimage)
@@ -299,6 +324,13 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             controls.setSpacing(4)
             batch_button = QtWidgets.QPushButton("Batch")
             select_button = QtWidgets.QPushButton("Select")
+            self._set_batch_button_style(
+                batch_button, self.id_data[item_id]["batch_toggled"]
+            )
+            self._set_select_button_style(
+                select_button, self.id_data[item_id]["selected"]
+            )
+
             id_label = QtWidgets.QLabel(str(item_id))
             id_label.setAlignment(QtCore.Qt.AlignCenter)
 
@@ -325,14 +357,6 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             if col >= columns:
                 row += 1
                 col = 0
-
-        if len(self.ids) == 1:
-            item_id = self.ids[0]
-            self.id_data[item_id]["selected"] = True
-            self.selected_ids.add(item_id)
-
-            button = self.id_data[item_id]["buttons"]["check"]
-            self._set_select_button_style(button, self.id_data[item_id]["selected"])
 
         self.page_label.setText(
             f"{self.page + 1} / {self.max_page}" if self.max_page else "0 / 0"
@@ -411,6 +435,57 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.tags_layout.addWidget(row)
 
         self.tags_layout.addStretch(1)
+
+    def _load_tag_values(self):
+        if not self.tag_name:
+            self.tag_values = []
+            return
+        values = []
+        for name, value in get_distinct_tags():
+            if name == self.tag_name and value != "":
+                values.append(value)
+        self.tag_values = sorted(set(values))
+
+    def on_tag_value_change(self, *args):
+        while self.results_layout.count():
+            item = self.results_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        user_input = self.tag_value_entry.text().strip().lower()
+        self.tag_value_input = user_input
+        result_values = []
+
+        for value in self.tag_values:
+            if value.startswith(user_input):
+                result_values.append(value)
+            if len(result_values) == 10:
+                break
+
+        for value in result_values:
+            row = QtWidgets.QHBoxLayout()
+            value_widget = QtWidgets.QLabel(value)
+            apply_button = QtWidgets.QPushButton("+")
+            apply_button.clicked.connect(partial(self.add_tags_to_selected, value))
+            row.addWidget(value_widget, 1)
+            row.addWidget(apply_button, 0)
+            container = QtWidgets.QWidget()
+            container.setLayout(row)
+            self.results_layout.addWidget(container)
+
+        if user_input and user_input not in result_values:
+            row = QtWidgets.QHBoxLayout()
+            value_widget = QtWidgets.QLabel(user_input)
+            apply_button = QtWidgets.QPushButton("+")
+            apply_button.clicked.connect(partial(self.add_tags_to_selected, user_input))
+            row.addWidget(value_widget, 1)
+            row.addWidget(apply_button, 0)
+            container = QtWidgets.QWidget()
+            container.setLayout(row)
+            self.results_layout.addWidget(container)
+
+        self.results_layout.addStretch(1)
 
     def update_tag(self, name_entry, style_combo, value_entry, old_name, old_value):
         new_name = name_entry.text().strip().lower()
@@ -503,12 +578,14 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.id_data[item_id]["selected"] = True
             self.id_data[item_id]["batch_toggled"] = False
             self.selected_ids.add(item_id)
-            self._set_select_button_style(
-                self.id_data[item_id]["buttons"]["check"], True
-            )
-            self._set_batch_button_style(
-                self.id_data[item_id]["buttons"]["batch"], False
-            )
+
+            if "buttons" in self.id_data[item_id]:
+                self._set_select_button_style(
+                    self.id_data[item_id]["buttons"]["check"], True
+                )
+                self._set_batch_button_style(
+                    self.id_data[item_id]["buttons"]["batch"], False
+                )
 
     def deselect_all(self):
         for item_id in self.ids:
@@ -522,23 +599,40 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             )
         self.selected_ids = set()
 
-    def add_tags_to_selected(self):
-        new_value = self.tag_value_entry.text().strip().lower()
+    def add_tags_to_selected(self, value=None):
+        if value is None:
+            new_value = self.tag_value_entry.text().strip().lower()
+        else:
+            new_value = str(value).strip().lower()
+
         if new_value == "":
             return
         add_tags(
-            {item_id: {self.tag_name: [new_value]} for item_id in self.selected_ids}
+            {
+                item_id: {
+                    self.tag_name: [
+                        new_value,
+                    ]
+                }
+                for item_id in self.selected_ids
+            }
         )
         for item_id in self.selected_ids:
             self.id_data.pop(item_id, None)
         self.selected_ids = set()
         self.tag_value_entry.clear()
+        if new_value and new_value not in self.tag_values:
+            self.tag_values.append(new_value)
+            self.tag_values.sort()
+        self.on_tag_value_change()
         self.reset()
 
     def edit_tagname(self):
         new_name = self.tag_name_entry.text().strip().lower()
         if new_name:
             self.tag_name = new_name
+            self._load_tag_values()
+            self.on_tag_value_change()
             self.reset()
 
     def update_items_per_page(self):
@@ -558,14 +652,17 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.page = max(0, self.page)
             self.page_entry.clear()
             self.load_images()
+            self._scroll_to_top()
 
     def increment_page(self):
         self.page = min(self.page + 1, self.max_page - 1)
         self.load_images()
+        self._scroll_to_top()
 
     def decrement_page(self):
         self.page = max(0, self.page - 1)
         self.load_images()
+        self._scroll_to_top()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -578,11 +675,16 @@ class MultiTagApplication(QtWidgets.QMainWindow):
 
     def reset(self):
         self.load_ids()
+        self._scroll_to_top()
 
     def closeEvent(self, event):
         if not self.completed:
             self.window_closed_manually = True
         super().closeEvent(event)
+
+    def _scroll_to_top(self):
+        if self.scroll_area and self.scroll_area.verticalScrollBar():
+            self.scroll_area.verticalScrollBar().setValue(0)
 
 
 def start_multitag_application(tag_names=None):

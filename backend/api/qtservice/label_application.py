@@ -3,6 +3,7 @@ from api.views_extension import (
     get_all_labels,
     get_thumbnail,
     edit_item,
+    thumbnail_cache,
 )
 from api.models import FileState
 from functools import partial
@@ -165,14 +166,13 @@ class LabelApplication(QtWidgets.QMainWindow):
         for item_id in self.ids:
             if item_id in self.id_data:
                 continue
-            thumbnail = get_thumbnail(item_id)
             self.id_data[item_id] = {
-                "thumbnail": thumbnail,
                 "selected": False,
                 "batch_toggled": False,
             }
 
         self.load_images()
+        self._scroll_to_top()
         self.on_entry_change()
 
     def _set_select_button_style(self, button, selected):
@@ -201,12 +201,17 @@ class LabelApplication(QtWidgets.QMainWindow):
         if not self.ids:
             return
 
-        first_thumb = self.id_data[self.ids[0]]["thumbnail"]
+        first_thumb = thumbnail_cache[self.ids[0]]
         target_side = max(first_thumb.width, first_thumb.height)
         columns = self._compute_columns(target_side)
 
         row = 0
         col = 0
+
+        if len(self.ids) == 1:
+            item_id = self.ids[0]
+            self.id_data[item_id]["selected"] = True
+            self.selected_ids.add(item_id)
 
         for i, item_id in enumerate(self.ids):
             frame = QtWidgets.QFrame()
@@ -214,7 +219,7 @@ class LabelApplication(QtWidgets.QMainWindow):
             frame_layout.setContentsMargins(4, 4, 4, 4)
             frame_layout.setSpacing(4)
 
-            thumbnail = self.id_data[item_id]["thumbnail"]
+            thumbnail = thumbnail_cache[item_id]
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)
             pixmap = QtGui.QPixmap.fromImage(qimage)
@@ -240,6 +245,13 @@ class LabelApplication(QtWidgets.QMainWindow):
             batch_button.clicked.connect(partial(self.select_batch, item_id))
             select_button.clicked.connect(partial(self.select_item, item_id))
 
+            self._set_batch_button_style(
+                batch_button, self.id_data[item_id]["batch_toggled"]
+            )
+            self._set_select_button_style(
+                select_button, self.id_data[item_id]["selected"]
+            )
+
             self.id_data[item_id]["buttons"] = {
                 "check": select_button,
                 "batch": batch_button,
@@ -261,13 +273,9 @@ class LabelApplication(QtWidgets.QMainWindow):
                 row += 1
                 col = 0
 
-        if len(self.ids) == 1:
-            item_id = self.ids[0]
-            self.id_data[item_id]["selected"] = True
-            self.selected_ids.add(item_id)
-
-            button = self.id_data[item_id]["buttons"]["check"]
-            self._set_select_button_style(button, self.id_data[item_id]["selected"])
+    def _scroll_to_top(self):
+        if self.scroll_area and self.scroll_area.verticalScrollBar():
+            self.scroll_area.verticalScrollBar().setValue(0)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

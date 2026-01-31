@@ -10,11 +10,15 @@ def multitag_window(monkeypatch, qtbot):
     monkeypatch.setattr(multitag_app, "check_for_modify", lambda: False)
     monkeypatch.setattr(multitag_app, "check_for_unlabelled", lambda: False)
     monkeypatch.setattr(multitag_app, "get_all_labels", lambda *a, **k: [])
-    monkeypatch.setattr(multitag_app, "get_untagged_ids", lambda *a, **k: [1])
-    monkeypatch.setattr(
-        multitag_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
-    )
+    monkeypatch.setattr(multitag_app, "get_distinct_tags", lambda *a, **k: [])
+    monkeypatch.setattr(multitag_app, "get_untagged_ids", lambda *a, **k: [1, 2])
     monkeypatch.setattr(multitag_app, "add_tags", lambda *a, **k: None)
+
+    class _FakeThumbnailCache:
+        def __getitem__(self, _item_id):
+            return Image.new("RGB", (10, 10))
+
+    monkeypatch.setattr(multitag_app, "thumbnail_cache", _FakeThumbnailCache())
 
     class _FakeItem:
         def getpath(self):
@@ -45,7 +49,7 @@ def test_add_tags_clears_selection(monkeypatch, multitag_window):
     multitag_window.add_tags_to_selected()
 
     assert called
-    assert multitag_window.selected_ids == {1}
+    assert multitag_window.selected_ids == set()
 
 
 def test_no_items_completes(monkeypatch, qtbot):
@@ -54,6 +58,7 @@ def test_no_items_completes(monkeypatch, qtbot):
     monkeypatch.setattr(multitag_app, "check_for_unlabelled", lambda: False)
     monkeypatch.setattr(multitag_app, "get_untagged_ids", lambda *a, **k: [])
     monkeypatch.setattr(multitag_app, "get_all_labels", lambda *a, **k: [])
+    monkeypatch.setattr(multitag_app, "get_distinct_tags", lambda *a, **k: [])
     window = multitag_app.MultiTagApplication(tag_names=["test"])
     qtbot.addWidget(window)
     assert window.completed

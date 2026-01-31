@@ -59,6 +59,7 @@ export default function View() {
 
   const maxHeight = maxBounds.height;
   const maxWidth = maxBounds.width;
+  const minWidth = 100;
 
   const backgroundColor = '#1F1F1F';
   const loadingColor = '#000000';
@@ -92,6 +93,8 @@ export default function View() {
       fittedHeight = Math.round((fittedHeight * maxWidth) / fittedWidth);
       fittedWidth = maxWidth;
     }
+
+    fittedWidth = Math.max(fittedWidth, minWidth);
 
     return { width: fittedWidth, height: fittedHeight };
   }

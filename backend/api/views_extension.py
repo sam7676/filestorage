@@ -35,6 +35,7 @@ import torch
 from transformers import CLIPProcessor, CLIPModel
 from pathlib import Path
 from api.utils.overrides import add_tag_override
+from collections import deque
 
 TAG_STYLE_OPTIONS = (
     TagConditions.Is.value,
@@ -46,6 +47,7 @@ TAG_STYLE_OPTIONS = (
 )
 
 DEFAULT_THUMBNAIL_SIZE = 200
+THUMBNAIL_CACHE_SIZE = 1000
 
 
 def get_next_crop_item(crop_max_height):
@@ -704,6 +706,10 @@ def check_for_unlabelled():
     return len(Item.objects.filter(state=int(FileState.NeedsLabel))) > 0
 
 
+def check_for_clips():
+    return len(Item.objects.filter(state=int(FileState.NeedsClip))) > 0
+
+
 class ClipModel:
     model = None
     processor = None
@@ -931,3 +937,25 @@ def get_comparison_items(item_id, num_items=10):
 
 def start_file(item_id):
     os.startfile(Item.objects.get(id=item_id).getpath())
+
+
+class ThumbnailCache:
+    def __init__(self):
+        self.cache = {}
+        self.cache_queue = deque()
+        self.cache_size = THUMBNAIL_CACHE_SIZE
+
+    def __getitem__(self, item_id):
+        if item_id in self.cache:
+            return self.cache[item_id]
+
+        while len(self.cache_queue) >= self.cache_size:
+            self.cache.pop(self.cache_queue.popleft())
+
+        thumbnail = get_thumbnail(item_id)
+        self.cache[item_id] = thumbnail
+        self.cache_queue.append(item_id)
+        return thumbnail
+
+
+thumbnail_cache = ThumbnailCache()

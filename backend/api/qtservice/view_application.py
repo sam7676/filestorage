@@ -17,6 +17,7 @@ from PIL import ImageQt
 from PySide6 import QtCore, QtGui, QtWidgets
 import vlc
 from api.utils.overrides import get_view_default_tags
+from collections import deque
 
 
 SORT_METRIC_OPTIONS = ("alphabetical", "random")
