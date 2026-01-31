@@ -171,6 +171,7 @@ class LabelApplication(QtWidgets.QMainWindow):
             }
 
         self.load_images()
+        self._scroll_to_top()
         self.on_entry_change()
 
     def _set_select_button_style(self, button, selected):
@@ -266,6 +267,10 @@ class LabelApplication(QtWidgets.QMainWindow):
 
             button = self.id_data[item_id]["buttons"]["check"]
             self._set_select_button_style(button, self.id_data[item_id]["selected"])
+
+    def _scroll_to_top(self):
+        if self.scroll_area and self.scroll_area.verticalScrollBar():
+            self.scroll_area.verticalScrollBar().setValue(0)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
