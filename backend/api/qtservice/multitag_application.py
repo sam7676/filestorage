@@ -3,6 +3,7 @@ from api.views_extension import (
     check_for_modify,
     check_for_unlabelled,
     get_all_labels,
+    get_distinct_tags,
     get_untagged_ids,
     TAG_STYLE_OPTIONS,
     get_thumbnail,
@@ -46,6 +47,8 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.id_data = {}
         self.chosen_tags = {}
         self.labels = []
+        self.tag_values = []
+        self.tag_value_input = ""
 
         self.setWindowTitle("Multitag application")
         screen = QtGui.QGuiApplication.primaryScreen()
@@ -153,6 +156,14 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         tag_value_label = QtWidgets.QLabel("Tag value")
         self.tag_value_entry = QtWidgets.QLineEdit()
         self.tag_value_button = QtWidgets.QPushButton("Add")
+        self.tag_value_entry.textChanged.connect(self.on_tag_value_change)
+
+        suggested_label = QtWidgets.QLabel("Suggested values")
+        suggested_label.setStyleSheet("font-weight: bold;")
+        self.results_container = QtWidgets.QWidget()
+        self.results_layout = QtWidgets.QVBoxLayout(self.results_container)
+        self.results_layout.setContentsMargins(0, 0, 0, 0)
+        self.results_layout.setSpacing(4)
 
         right_layout.addWidget(tag_name_label)
         right_layout.addWidget(self.tag_name_entry)
@@ -160,6 +171,8 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         right_layout.addWidget(tag_value_label)
         right_layout.addWidget(self.tag_value_entry)
         right_layout.addWidget(self.tag_value_button)
+        right_layout.addWidget(suggested_label)
+        right_layout.addWidget(self.results_container, 1)
 
         self.tags_scroll = QtWidgets.QScrollArea()
         self.tags_scroll.setWidgetResizable(True)
@@ -170,7 +183,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.tags_layout.setSpacing(4)
         self.tags_scroll.setWidget(self.tags_scroll_contents)
 
-        right_layout.addWidget(self.tags_scroll, 1)
+        right_layout.addWidget(self.tags_scroll, 2)
 
         layout.addWidget(left_panel, 4)
         layout.addWidget(right_panel, 1)
@@ -239,6 +252,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             item["label"] for item in get_all_labels() if item["label"] != ""
         ]
         self.labels.sort()
+        self._load_tag_values()
 
         if not self.ids:
             self.load_next_tag()
@@ -254,6 +268,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
 
         self.load_images()
         self.load_tags()
+        self.on_tag_value_change()
 
     def load_images(self):
         while self.scroll_layout.count():
@@ -418,6 +433,57 @@ class MultiTagApplication(QtWidgets.QMainWindow):
 
         self.tags_layout.addStretch(1)
 
+    def _load_tag_values(self):
+        if not self.tag_name:
+            self.tag_values = []
+            return
+        values = []
+        for name, value in get_distinct_tags():
+            if name == self.tag_name and value != "":
+                values.append(value)
+        self.tag_values = sorted(set(values))
+
+    def on_tag_value_change(self, *args):
+        while self.results_layout.count():
+            item = self.results_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        user_input = self.tag_value_entry.text().strip().lower()
+        self.tag_value_input = user_input
+        result_values = []
+
+        for value in self.tag_values:
+            if value.startswith(user_input):
+                result_values.append(value)
+            if len(result_values) == 10:
+                break
+
+        for value in result_values:
+            row = QtWidgets.QHBoxLayout()
+            value_widget = QtWidgets.QLabel(value)
+            apply_button = QtWidgets.QPushButton("+")
+            apply_button.clicked.connect(partial(self.add_tags_to_selected, value))
+            row.addWidget(value_widget, 1)
+            row.addWidget(apply_button, 0)
+            container = QtWidgets.QWidget()
+            container.setLayout(row)
+            self.results_layout.addWidget(container)
+
+        if user_input and user_input not in result_values:
+            row = QtWidgets.QHBoxLayout()
+            value_widget = QtWidgets.QLabel(user_input)
+            apply_button = QtWidgets.QPushButton("+")
+            apply_button.clicked.connect(partial(self.add_tags_to_selected, user_input))
+            row.addWidget(value_widget, 1)
+            row.addWidget(apply_button, 0)
+            container = QtWidgets.QWidget()
+            container.setLayout(row)
+            self.results_layout.addWidget(container)
+
+        self.results_layout.addStretch(1)
+
     def update_tag(self, name_entry, style_combo, value_entry, old_name, old_value):
         new_name = name_entry.text().strip().lower()
         new_style = style_combo.currentText()
@@ -528,8 +594,11 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             )
         self.selected_ids = set()
 
-    def add_tags_to_selected(self):
-        new_value = self.tag_value_entry.text().strip().lower()
+    def add_tags_to_selected(self, value=None):
+        if value is None:
+            new_value = self.tag_value_entry.text().strip().lower()
+        else:
+            new_value = str(value).strip().lower()
         if new_value == "":
             return
         add_tags(
@@ -539,12 +608,18 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.id_data.pop(item_id, None)
         self.selected_ids = set()
         self.tag_value_entry.clear()
+        if new_value and new_value not in self.tag_values:
+            self.tag_values.append(new_value)
+            self.tag_values.sort()
+        self.on_tag_value_change()
         self.reset()
 
     def edit_tagname(self):
         new_name = self.tag_name_entry.text().strip().lower()
         if new_name:
             self.tag_name = new_name
+            self._load_tag_values()
+            self.on_tag_value_change()
             self.reset()
 
     def update_items_per_page(self):
@@ -564,14 +639,17 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.page = max(0, self.page)
             self.page_entry.clear()
             self.load_images()
+            self._scroll_to_top()
 
     def increment_page(self):
         self.page = min(self.page + 1, self.max_page - 1)
         self.load_images()
+        self._scroll_to_top()
 
     def decrement_page(self):
         self.page = max(0, self.page - 1)
         self.load_images()
+        self._scroll_to_top()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -584,11 +662,16 @@ class MultiTagApplication(QtWidgets.QMainWindow):
 
     def reset(self):
         self.load_ids()
+        self._scroll_to_top()
 
     def closeEvent(self, event):
         if not self.completed:
             self.window_closed_manually = True
         super().closeEvent(event)
+
+    def _scroll_to_top(self):
+        if self.scroll_area and self.scroll_area.verticalScrollBar():
+            self.scroll_area.verticalScrollBar().setValue(0)
 
 
 def start_multitag_application(tag_names=None):
