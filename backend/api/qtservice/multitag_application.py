@@ -14,7 +14,6 @@ from functools import partial
 import math
 import sys
 import os
-from collections import deque
 
 from PIL import Image, ImageQt
 from PySide6 import QtCore, QtGui, QtWidgets
