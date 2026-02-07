@@ -157,10 +157,14 @@ class MultiTagApplication(QtWidgets.QMainWindow):
 
         suggested_label = QtWidgets.QLabel("Suggested values")
         suggested_label.setStyleSheet("font-weight: bold;")
+        self.results_scroll = QtWidgets.QScrollArea()
+        self.results_scroll.setWidgetResizable(True)
+        self.results_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.results_container = QtWidgets.QWidget()
         self.results_layout = QtWidgets.QVBoxLayout(self.results_container)
         self.results_layout.setContentsMargins(0, 0, 0, 0)
         self.results_layout.setSpacing(4)
+        self.results_scroll.setWidget(self.results_container)
 
         right_layout.addWidget(tag_name_label)
         right_layout.addWidget(self.tag_name_entry)
@@ -169,7 +173,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         right_layout.addWidget(self.tag_value_entry)
         right_layout.addWidget(self.tag_value_button)
         right_layout.addWidget(suggested_label)
-        right_layout.addWidget(self.results_container, 1)
+        right_layout.addWidget(self.results_scroll, 1)
 
         self.tags_scroll = QtWidgets.QScrollArea()
         self.tags_scroll.setWidgetResizable(True)
@@ -459,8 +463,6 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         for value in self.tag_values:
             if value.startswith(user_input):
                 result_values.append(value)
-            if len(result_values) == 10:
-                break
 
         for value in result_values:
             row = QtWidgets.QHBoxLayout()
