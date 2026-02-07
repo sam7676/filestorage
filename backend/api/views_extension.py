@@ -1,7 +1,6 @@
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from django.core.files.storage import FileSystemStorage
-from enum import Enum
 from functools import reduce
 import operator
 from django.db.models import Q
@@ -150,6 +149,20 @@ def delete_items(item_ids):
         item.delete()
 
 
+def delete_items_desktop(item_ids):
+    for item_id in item_ids:
+        item = Item.objects.all().filter(id=item_id).get()
+        if item.filetype == int(FileType.Video):
+            VideoRemover.remove_video(item.id)
+        else:
+            item_path = item.getpath()
+
+            if os.path.exists(item_path):
+                os.remove(item_path)
+
+            item.delete()
+
+
 def item_data(item):
     return item.id, {
         "id": item.id,
@@ -270,6 +283,19 @@ def get_items_and_paths_from_tags(tags, order_by=None):
                 objects = objects.filter(width__gte=tagList[0])
             if tagCondition == TagConditions.IsNot.value:
                 objects = objects.filter(width__lt=tagList[0])
+
+        elif tagName == "idrange":
+            # Cannot have multiple id ranges
+            if len(tagList) != 1:
+                continue
+
+            # If using "is", take items where item.id >= provided_id
+            # Reverse for "is not"
+
+            if tagCondition == TagConditions.Is.value:
+                objects = objects.filter(id__gte=str(tagList[0]))
+            if tagCondition == TagConditions.IsNot.value:
+                objects = objects.filter(id__lt=str(tagList[0]))
 
         else:
             # Generic tags
@@ -721,7 +747,9 @@ class ClipModel:
     def load_clip_model(cls):
         with torch.no_grad():
             model = CLIPModel.from_pretrained(cls.clip_model_name)
-            processor = CLIPProcessor.from_pretrained(cls.clip_model_name)
+            processor = CLIPProcessor.from_pretrained(
+                cls.clip_model_name, use_fast=True
+            )
 
             model.eval()
             model.to(cls.device)
@@ -940,22 +968,57 @@ def start_file(item_id):
 
 
 class ThumbnailCache:
-    def __init__(self):
-        self.cache = {}
-        self.cache_queue = deque()
-        self.cache_size = THUMBNAIL_CACHE_SIZE
+    cache = {}
+    cache_queue = deque()
+    cache_size = THUMBNAIL_CACHE_SIZE
 
-    def __getitem__(self, item_id):
-        if item_id in self.cache:
-            return self.cache[item_id]
+    @classmethod
+    def __getitem__(cls, item_id):
+        if item_id in cls.cache:
+            return cls.cache[item_id]
 
-        while len(self.cache_queue) >= self.cache_size:
-            self.cache.pop(self.cache_queue.popleft())
+        while len(cls.cache_queue) >= cls.cache_size:
+            cls.cache.pop(cls.cache_queue.popleft())
 
         thumbnail = get_thumbnail(item_id)
-        self.cache[item_id] = thumbnail
-        self.cache_queue.append(item_id)
+        cls.cache[item_id] = thumbnail
+        cls.cache_queue.append(item_id)
         return thumbnail
+
+
+class VideoRemover:
+    videos_to_remove = (
+        deque()
+    )  # used for thread safety, and same item throughout while keeping iteration smooth
+
+    @classmethod
+    def remove_video(cls, item_id):
+        # Remove it from the database, and then repeatedly attempt to remove the item
+        # Leaves dangling items, worst case these get picked up when re-running the desktop application
+
+        item = Item.objects.get(id=item_id)
+        path = item.getpath()
+        item.delete()
+
+        if not os.path.exists(path):
+            return
+
+        try:
+            os.remove(path)
+        except OSError:
+            cls.videos_to_remove.append(path)
+
+    @classmethod
+    def process(cls):
+        for _ in range(len(cls.videos_to_remove)):
+            path = cls.videos_to_remove.popleft()
+            if not os.path.exists(path):
+                continue
+
+            try:
+                os.remove(path)
+            except OSError:
+                cls.videos_to_remove.append(path)
 
 
 thumbnail_cache = ThumbnailCache()

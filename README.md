@@ -37,7 +37,7 @@ Web backend
 
 ```
 cd backend
-uv run manage.py rs
+uv run manage.py web
 ```
 
 Backend testing
@@ -55,7 +55,7 @@ npm run test:coverage
 Desktop GUI
 ```
 cd backend
-uv run manage.py qtservice 
+uv run manage.py desktop 
 ```
 
 Shell

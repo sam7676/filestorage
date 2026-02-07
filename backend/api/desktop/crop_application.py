@@ -1,7 +1,7 @@
 from api.views_extension import (
     get_next_crop_item,
     crop_and_resize_from_view,
-    delete_items,
+    delete_items_desktop,
 )
 from api.utils.process_images import apply_rgb_curves
 from api.utils.process_images import rotate_image_90
@@ -416,7 +416,7 @@ class CropApplication(QtWidgets.QMainWindow):
         self.load_next_item()
 
     def delete(self):
-        delete_items(item_ids=(self.item_id,))
+        delete_items_desktop(item_ids=(self.item_id,))
         self.load_next_item()
 
     def move_up(self, val):

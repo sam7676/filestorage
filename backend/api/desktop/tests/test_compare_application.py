@@ -2,7 +2,7 @@ from PIL import Image
 import pytest
 
 from api.models import FileType
-from api.qtservice import compare_application as compare_app
+from api.desktop import compare_application as compare_app
 
 
 class _FakeItem:
@@ -41,7 +41,7 @@ def compare_window(monkeypatch, qtbot):
     monkeypatch.setattr(
         compare_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
     )
-    monkeypatch.setattr(compare_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(compare_app, "delete_items_desktop", lambda *a, **k: None)
 
     class _FakeItemModel:
         objects = manager
@@ -55,7 +55,9 @@ def compare_window(monkeypatch, qtbot):
 
 def test_remove_item_updates_list(monkeypatch, compare_window):
     called = []
-    monkeypatch.setattr(compare_app, "delete_items", lambda ids: called.append(ids))
+    monkeypatch.setattr(
+        compare_app, "delete_items_desktop", lambda ids: called.append(ids)
+    )
 
     compare_window.remove_item(2)
 

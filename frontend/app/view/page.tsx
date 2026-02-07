@@ -318,30 +318,32 @@ export default function View() {
 
   const addTuple = async () => {
     if (newFirst.trim()) {
-      var isInFirst = false;
-      const split = newFirst.trim().split(' ');
+      for (const andSplit of newFirst.trim().split(' and ')) {
+        var isInFirst = false;
+        const split = andSplit.trim().split(' ');
 
-      // convert to list and take that
-      if (split.length == 3 && SPLIT_OPTIONS_MAP.has(split[1].trim())) {
-        const first = split[0].trim();
-        const second = SPLIT_OPTIONS_MAP.get(split[1].trim()) || 'is';
-        const third = split[2].trim();
+        // convert to list and take that
+        if (split.length == 3 && SPLIT_OPTIONS_MAP.has(split[1].trim())) {
+          const first = split[0].trim();
+          const second = SPLIT_OPTIONS_MAP.get(split[1].trim()) || 'is';
+          const third = split[2].trim();
 
-        const newTuple: Tuple = [first.trim(), second, third.trim()];
-        setTuples((prev) => [...prev, newTuple]);
-        setNewFirst('');
-        setNewSecond(CONDITIONS_OPTIONS[0]);
-        setNewThird('');
+          const newTuple: Tuple = [first.trim(), second, third.trim()];
+          setTuples((prev) => [...prev, newTuple]);
+          setNewFirst('');
+          setNewSecond(CONDITIONS_OPTIONS[0]);
+          setNewThird('');
 
-        isInFirst = true;
-      }
+          isInFirst = true;
+        }
 
-      if (!isInFirst && newThird.trim()) {
-        const newTuple: Tuple = [newFirst.trim(), newSecond, newThird.trim()];
-        setTuples((prev) => [...prev, newTuple]);
-        setNewFirst('');
-        setNewSecond(CONDITIONS_OPTIONS[0]);
-        setNewThird('');
+        if (!isInFirst && newThird.trim()) {
+          const newTuple: Tuple = [newFirst.trim(), newSecond, newThird.trim()];
+          setTuples((prev) => [...prev, newTuple]);
+          setNewFirst('');
+          setNewSecond(CONDITIONS_OPTIONS[0]);
+          setNewThird('');
+        }
       }
     }
   };
@@ -615,6 +617,10 @@ export default function View() {
         <div className="flex justify-center">
           <input
             type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck="false"
             value={newFirst}
             onChange={(e) => setNewFirst(e.target.value)}
             onKeyDown={(e) => {
@@ -646,6 +652,10 @@ export default function View() {
           </select>
           <input
             type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck="false"
             value={newThird}
             onChange={(e) => setNewThird(e.target.value)}
             onKeyDown={(e) => {

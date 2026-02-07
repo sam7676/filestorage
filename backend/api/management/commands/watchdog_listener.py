@@ -12,7 +12,7 @@ from api.models import (
 )
 from api.utils.key_paths import MEDIA_PATH, READER_PATHS
 from threading import Lock
-from api.views_extension import edit_item, get_dimensions, upload_item
+from api.views_extension import edit_item, get_dimensions, upload_item, VideoRemover
 from api.management.commands.cleandb import clean_db
 
 
@@ -218,6 +218,7 @@ def run_watchdog_listener(directories=None):
 
     while True:
         processor.process()
+        VideoRemover.process()
         time.sleep(PROCESS_TIME)
 
 

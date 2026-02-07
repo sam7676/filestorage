@@ -2,7 +2,7 @@ from api.views_extension import (
     get_random_compare_item,
     get_comparison_items,
     get_thumbnail,
-    delete_items,
+    delete_items_desktop,
 )
 from api.models import Item, FileType
 from functools import partial
@@ -352,11 +352,11 @@ class CompareApplication(QtWidgets.QMainWindow):
 
     def remove_item(self, item_id):
         if self.item and item_id == self.item.id:
-            delete_items({item_id})
+            delete_items_desktop({item_id})
             self.load_next_item()
             return
 
-        delete_items({item_id})
+        delete_items_desktop({item_id})
         self.comparison_item_ids = [
             iid for iid in self.comparison_item_ids if iid != item_id
         ]

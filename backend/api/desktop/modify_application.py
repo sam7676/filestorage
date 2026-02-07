@@ -2,7 +2,7 @@ from api.views_extension import (
     get_top_x_needsmodify_ids,
     get_thumbnail,
     edit_item,
-    delete_items,
+    delete_items_desktop,
     start_file,
 )
 from api.utils.process_images import crop_and_resize_image
@@ -243,7 +243,7 @@ class ModifyApplication(QtWidgets.QMainWindow):
             os.startfile(Item.objects.filter(id=item_id).get().getpath())
 
     def delete_item(self, item_id):
-        delete_items({item_id})
+        delete_items_desktop({item_id})
         self.load_next_items()
 
     def closeEvent(self, event):

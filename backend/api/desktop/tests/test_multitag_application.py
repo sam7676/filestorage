@@ -1,7 +1,7 @@
 import pytest
 from PIL import Image
 
-from api.qtservice import multitag_application as multitag_app
+from api.desktop import multitag_application as multitag_app
 
 
 @pytest.fixture
@@ -15,10 +15,11 @@ def multitag_window(monkeypatch, qtbot):
     monkeypatch.setattr(multitag_app, "add_tags", lambda *a, **k: None)
 
     class _FakeThumbnailCache:
-        def __getitem__(self, _item_id):
+        @staticmethod
+        def __getitem__(_item_id):
             return Image.new("RGB", (10, 10))
 
-    monkeypatch.setattr(multitag_app, "thumbnail_cache", _FakeThumbnailCache())
+    monkeypatch.setattr(multitag_app, "ThumbnailCache", _FakeThumbnailCache)
 
     class _FakeItem:
         def getpath(self):

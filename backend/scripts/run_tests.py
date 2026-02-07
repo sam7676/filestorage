@@ -28,12 +28,12 @@ def main():
                 "--append",
                 "-m",
                 "pytest",
-                "api/qtservice/tests",
+                "api/desktop/tests",
             ]
         )
     else:
         run(["uv", "run", "manage.py", "test", "api"])
-        run(["uv", "run", "-m", "pytest", "api/qtservice/tests"])
+        run(["uv", "run", "-m", "pytest", "api/desktop/tests"])
 
 
 if __name__ == "__main__":

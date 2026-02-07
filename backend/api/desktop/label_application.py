@@ -1,9 +1,8 @@
 from api.views_extension import (
     get_top_x_unlabelled_ids,
     get_all_labels,
-    get_thumbnail,
     edit_item,
-    thumbnail_cache,
+    ThumbnailCache,
 )
 from api.models import FileState
 from functools import partial
@@ -201,7 +200,7 @@ class LabelApplication(QtWidgets.QMainWindow):
         if not self.ids:
             return
 
-        first_thumb = thumbnail_cache[self.ids[0]]
+        first_thumb = ThumbnailCache.__getitem__(self.ids[0])
         target_side = max(first_thumb.width, first_thumb.height)
         columns = self._compute_columns(target_side)
 
@@ -219,7 +218,7 @@ class LabelApplication(QtWidgets.QMainWindow):
             frame_layout.setContentsMargins(4, 4, 4, 4)
             frame_layout.setSpacing(4)
 
-            thumbnail = thumbnail_cache[item_id]
+            thumbnail = ThumbnailCache.__getitem__(item_id)
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)
             pixmap = QtGui.QPixmap.fromImage(qimage)

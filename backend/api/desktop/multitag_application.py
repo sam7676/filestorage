@@ -6,9 +6,8 @@ from api.views_extension import (
     get_distinct_tags,
     get_untagged_ids,
     TAG_STYLE_OPTIONS,
-    get_thumbnail,
     add_tags,
-    thumbnail_cache,
+    ThumbnailCache,
 )
 from api.models import Item, TagConditions
 from functools import partial
@@ -158,10 +157,14 @@ class MultiTagApplication(QtWidgets.QMainWindow):
 
         suggested_label = QtWidgets.QLabel("Suggested values")
         suggested_label.setStyleSheet("font-weight: bold;")
+        self.results_scroll = QtWidgets.QScrollArea()
+        self.results_scroll.setWidgetResizable(True)
+        self.results_scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.results_container = QtWidgets.QWidget()
         self.results_layout = QtWidgets.QVBoxLayout(self.results_container)
         self.results_layout.setContentsMargins(0, 0, 0, 0)
         self.results_layout.setSpacing(4)
+        self.results_scroll.setWidget(self.results_container)
 
         right_layout.addWidget(tag_name_label)
         right_layout.addWidget(self.tag_name_entry)
@@ -170,7 +173,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         right_layout.addWidget(self.tag_value_entry)
         right_layout.addWidget(self.tag_value_button)
         right_layout.addWidget(suggested_label)
-        right_layout.addWidget(self.results_container, 1)
+        right_layout.addWidget(self.results_scroll, 1)
 
         self.tags_scroll = QtWidgets.QScrollArea()
         self.tags_scroll.setWidgetResizable(True)
@@ -181,7 +184,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.tags_layout.setSpacing(4)
         self.tags_scroll.setWidget(self.tags_scroll_contents)
 
-        right_layout.addWidget(self.tags_scroll, 2)
+        right_layout.addWidget(self.tags_scroll, 1)
 
         layout.addWidget(left_panel, 4)
         layout.addWidget(right_panel, 1)
@@ -285,7 +288,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.page_label.setText("0 / 0")
             return
 
-        first_thumb = thumbnail_cache[ids[0]]
+        first_thumb = ThumbnailCache.__getitem__(ids[0])
         target_side = max(first_thumb.width, first_thumb.height)
         columns = self._compute_columns(target_side)
 
@@ -303,7 +306,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             card_layout.setContentsMargins(4, 4, 4, 4)
             card_layout.setSpacing(4)
 
-            thumbnail = first_thumb if i == 0 else thumbnail_cache[item_id]
+            thumbnail = first_thumb if i == 0 else ThumbnailCache.__getitem__(item_id)
 
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)
@@ -460,8 +463,6 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         for value in self.tag_values:
             if value.startswith(user_input):
                 result_values.append(value)
-            if len(result_values) == 10:
-                break
 
         for value in result_values:
             row = QtWidgets.QHBoxLayout()

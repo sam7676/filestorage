@@ -1,6 +1,6 @@
 from api.views_extension import (
     get_next_tag_item,
-    delete_items,
+    delete_items_desktop,
     edit_item,
     get_tags,
     get_latest_confirmed_item,
@@ -819,7 +819,7 @@ class TagApplication(QtWidgets.QMainWindow):
         self.load_next_item()
 
     def delete(self):
-        delete_items(item_ids=(self.item_id,))
+        delete_items_desktop(item_ids=(self.item_id,))
         self.clear_commit_and_next()
 
     def open_item(self):
