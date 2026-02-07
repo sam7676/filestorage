@@ -2,7 +2,8 @@ from PIL import Image
 import pytest
 
 from api.models import FileType, FileState
-from api.qtservice import clip_application as clip_app
+from api.desktop import clip_application as clip_app
+from PySide6 import QtWidgets
 
 
 class _FakeItem:
@@ -43,7 +44,7 @@ def clip_window(monkeypatch, qtbot):
         clip_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
     )
     monkeypatch.setattr(clip_app, "edit_item", lambda *a, **k: None)
-    monkeypatch.setattr(clip_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(clip_app, "delete_items_desktop", lambda *a, **k: None)
     monkeypatch.setattr(clip_app, "start_file", lambda *a, **k: None)
 
     class _FakeItemModel:
@@ -58,7 +59,9 @@ def clip_window(monkeypatch, qtbot):
 
 def test_choose_left_deletes_right(monkeypatch, clip_window):
     called = []
-    monkeypatch.setattr(clip_app, "delete_items", lambda ids: called.append(ids))
+    monkeypatch.setattr(
+        clip_app, "delete_items_desktop", lambda ids: called.append(ids)
+    )
 
     clip_window.choose_left()
 
@@ -87,3 +90,20 @@ def test_nearest_missing_auto_approves(monkeypatch, qtbot):
 
     assert approved
     assert approved[0]["new_state"] == int(FileState.NeedsTags)
+
+
+def test_clear_layout_removes_nested_widgets(qtbot, clip_window):
+    container = QtWidgets.QWidget()
+    layout = QtWidgets.QVBoxLayout(container)
+    child_layout = QtWidgets.QHBoxLayout()
+
+    label = QtWidgets.QLabel("meta")
+    child_layout.addWidget(label)
+    layout.addLayout(child_layout)
+    layout.addWidget(QtWidgets.QLabel("media"))
+
+    clip_window._clear_layout(layout)
+    QtWidgets.QApplication.processEvents()
+
+    assert layout.count() == 0
+    assert child_layout.count() == 0

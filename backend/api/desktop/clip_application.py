@@ -3,7 +3,7 @@ from api.views_extension import (
     get_nearest_item,
     get_thumbnail,
     edit_item,
-    delete_items,
+    delete_items_desktop,
     start_file,
     ClipModel,
 )
@@ -16,7 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import vlc
 
 
-VIDEOS_TO_PLAY = 0
+VIDEOS_TO_PLAY = 2
 
 
 class VlcVideoWidget(QtWidgets.QFrame):
@@ -250,6 +250,10 @@ class ClipApplication(QtWidgets.QMainWindow):
             widget = item.widget()
             if widget:
                 widget.deleteLater()
+            else:
+                child_layout = item.layout()
+                if child_layout:
+                    self._clear_layout(child_layout)
 
     def _clear_video_players(self):
         for widget in self._video_widgets:
@@ -343,7 +347,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.load_next_item()
 
     def delete(self, item_id):
-        delete_items((item_id,))
+        delete_items_desktop((item_id,))
         self.load_next_item()
 
     def choose_left(self):

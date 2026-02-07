@@ -2,7 +2,7 @@ from PIL import Image
 import pytest
 
 from api.models import FileType
-from api.qtservice import view_application as view_app
+from api.desktop import view_application as view_app
 from PySide6 import QtWidgets
 
 
@@ -49,7 +49,7 @@ def view_window(monkeypatch, qtbot):
     monkeypatch.setattr(
         view_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
     )
-    monkeypatch.setattr(view_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(view_app, "delete_items_desktop", lambda *a, **k: None)
     monkeypatch.setattr(view_app, "edit_item", lambda *a, **k: None)
 
     class _FakeItemModel:
@@ -95,7 +95,7 @@ def test_videos_currently_played_limits_playback(monkeypatch, qtbot):
     monkeypatch.setattr(
         view_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
     )
-    monkeypatch.setattr(view_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(view_app, "delete_items_desktop", lambda *a, **k: None)
     monkeypatch.setattr(view_app, "edit_item", lambda *a, **k: None)
 
     class _FakeItemModel:

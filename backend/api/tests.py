@@ -538,7 +538,7 @@ class ViewsExtensionTests(TestCase):
         self.assertEqual(resized.size, (1600, views_extension.MEDIA_HEIGHT))
 
 
-class QtServicePipelineTests(TestCase):
+class DesktopPipelineTests(TestCase):
     def setUp(self):
         super().setUp()
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -763,9 +763,15 @@ class WatchdogListenerTests(TestCase):
         def upload_item(*args, **kwargs):
             return None
 
+        class VideoRemover:
+            @staticmethod
+            def process():
+                return None
+
         dummy_views_extension.edit_item = edit_item
         dummy_views_extension.get_dimensions = get_dimensions
         dummy_views_extension.upload_item = upload_item
+        dummy_views_extension.VideoRemover = VideoRemover
 
         with patch.dict(sys.modules, {"api.views_extension": dummy_views_extension}):
             if "api.management.commands.watchdog_listener" in sys.modules:

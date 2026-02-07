@@ -4,7 +4,7 @@ from PIL import Image
 import pytest
 
 from api.models import FileState
-from api.qtservice import crop_application as crop_app
+from api.desktop import crop_application as crop_app
 
 
 def _make_image(tmp_path: Path) -> Image.Image:
@@ -20,7 +20,7 @@ def crop_window(tmp_path, monkeypatch, qtbot):
     items = iter([(image, bounds, 123), None])
 
     monkeypatch.setattr(crop_app, "get_next_crop_item", lambda *a, **k: next(items))
-    monkeypatch.setattr(crop_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(crop_app, "delete_items_desktop", lambda *a, **k: None)
 
     window = crop_app.CropApplication()
     qtbot.addWidget(window)
@@ -78,7 +78,7 @@ def test_no_bounds_defaults_to_full_image(tmp_path, monkeypatch, qtbot):
     items = iter([(image, [], 234), None])
 
     monkeypatch.setattr(crop_app, "get_next_crop_item", lambda *a, **k: next(items))
-    monkeypatch.setattr(crop_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(crop_app, "delete_items_desktop", lambda *a, **k: None)
 
     window = crop_app.CropApplication()
     qtbot.addWidget(window)

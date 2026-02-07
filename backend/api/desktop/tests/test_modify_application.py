@@ -4,7 +4,7 @@ from PIL import Image
 import pytest
 
 from api.models import FileState
-from api.qtservice import modify_application as modify_app
+from api.desktop import modify_application as modify_app
 
 
 class _FakeItem:
@@ -42,7 +42,7 @@ def modify_window(tmp_path, monkeypatch, qtbot):
     monkeypatch.setattr(
         modify_app, "get_thumbnail", lambda *a, **k: Image.new("RGB", (10, 10))
     )
-    monkeypatch.setattr(modify_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(modify_app, "delete_items_desktop", lambda *a, **k: None)
     monkeypatch.setattr(modify_app, "edit_item", lambda *a, **k: None)
     monkeypatch.setattr(modify_app, "start_file", lambda *a, **k: None)
 
@@ -74,7 +74,9 @@ def test_move_item_updates_item(monkeypatch, modify_window):
 
 def test_delete_item_calls_delete(monkeypatch, modify_window):
     called = []
-    monkeypatch.setattr(modify_app, "delete_items", lambda ids: called.append(ids))
+    monkeypatch.setattr(
+        modify_app, "delete_items_desktop", lambda ids: called.append(ids)
+    )
 
     modify_window.delete_item(1)
 

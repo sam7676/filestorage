@@ -6,9 +6,8 @@ from api.views_extension import (
     get_distinct_tags,
     get_untagged_ids,
     TAG_STYLE_OPTIONS,
-    get_thumbnail,
     add_tags,
-    thumbnail_cache,
+    ThumbnailCache,
 )
 from api.models import Item, TagConditions
 from functools import partial
@@ -285,7 +284,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             self.page_label.setText("0 / 0")
             return
 
-        first_thumb = thumbnail_cache[ids[0]]
+        first_thumb = ThumbnailCache.__getitem__(ids[0])
         target_side = max(first_thumb.width, first_thumb.height)
         columns = self._compute_columns(target_side)
 
@@ -303,7 +302,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
             card_layout.setContentsMargins(4, 4, 4, 4)
             card_layout.setSpacing(4)
 
-            thumbnail = first_thumb if i == 0 else thumbnail_cache[item_id]
+            thumbnail = first_thumb if i == 0 else ThumbnailCache.__getitem__(item_id)
 
             thumbnail = self._pad_thumbnail(thumbnail, target_side)
             qimage = ImageQt.ImageQt(thumbnail)

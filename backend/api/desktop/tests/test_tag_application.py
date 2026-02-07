@@ -5,7 +5,7 @@ import pytest
 from PySide6 import QtWidgets
 
 from api.models import FileType
-from api.qtservice import tag_application as tag_app
+from api.desktop import tag_application as tag_app
 
 
 class _FakeItem:
@@ -48,7 +48,7 @@ def tag_app_window(tmp_path, monkeypatch, qtbot):
     monkeypatch.setattr(tag_app, "get_distinct_tags", lambda: [("color", "red")])
     monkeypatch.setattr(tag_app, "add_tags", lambda *a, **k: None)
     monkeypatch.setattr(tag_app, "remove_tags", lambda *a, **k: None)
-    monkeypatch.setattr(tag_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(tag_app, "delete_items_desktop", lambda *a, **k: None)
     monkeypatch.setattr(tag_app, "edit_item", lambda *a, **k: None)
 
     class _FakeItemModel:
@@ -102,7 +102,7 @@ def test_video_label_edit_closes_media(tmp_path, monkeypatch, qtbot):
     monkeypatch.setattr(tag_app, "get_distinct_tags", lambda: [])
     monkeypatch.setattr(tag_app, "add_tags", lambda *a, **k: None)
     monkeypatch.setattr(tag_app, "remove_tags", lambda *a, **k: None)
-    monkeypatch.setattr(tag_app, "delete_items", lambda *a, **k: None)
+    monkeypatch.setattr(tag_app, "delete_items_desktop", lambda *a, **k: None)
 
     window = tag_app.TagApplication(tag_random=False)
     qtbot.addWidget(window)

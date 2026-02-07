@@ -4,7 +4,7 @@ from PIL import Image
 import pytest
 
 from api.models import FileState
-from api.qtservice import label_application as label_app
+from api.desktop import label_application as label_app
 from PySide6 import QtWidgets
 
 
@@ -22,10 +22,11 @@ def label_window(tmp_path, monkeypatch, qtbot):
     monkeypatch.setattr(label_app, "edit_item", lambda *a, **k: None)
 
     class _FakeThumbnailCache:
-        def __getitem__(self, _item_id):
+        @staticmethod
+        def __getitem__(_item_id):
             return Image.new("RGB", (10, 10))
 
-    monkeypatch.setattr(label_app, "thumbnail_cache", _FakeThumbnailCache())
+    monkeypatch.setattr(label_app, "ThumbnailCache", _FakeThumbnailCache)
 
     window = label_app.LabelApplication()
     qtbot.addWidget(window)

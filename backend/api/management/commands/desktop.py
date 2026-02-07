@@ -6,14 +6,14 @@ from api.views_extension import (
     check_for_unlabelled,
     check_for_clips,
 )
-from api.qtservice.crop_application import start_crop_application
-from api.qtservice.label_application import start_label_application
-from api.qtservice.tag_application import start_tag_application
-from api.qtservice.multitag_application import start_multitag_application
-from api.qtservice.view_application import start_view_application
-from api.qtservice.modify_application import start_modify_application
-from api.qtservice.clip_application import start_clip_application
-from api.qtservice.compare_application import start_compare_application
+from api.desktop.crop_application import start_crop_application
+from api.desktop.label_application import start_label_application
+from api.desktop.tag_application import start_tag_application
+from api.desktop.multitag_application import start_multitag_application
+from api.desktop.view_application import start_view_application
+from api.desktop.modify_application import start_modify_application
+from api.desktop.clip_application import start_clip_application
+from api.desktop.compare_application import start_compare_application
 
 from functools import partial
 from threading import Thread
@@ -26,10 +26,10 @@ from api.utils.overrides import SERVICE_REQUIRED_TAGS
 
 class Command(BaseCommand):
     def handle(self, **options):
-        qtservice()
+        desktop()
 
 
-def qtservice():
+def desktop():
     live_mode = True
 
     preprocess_watchdog_listener()

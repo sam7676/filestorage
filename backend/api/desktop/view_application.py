@@ -4,7 +4,7 @@ from api.views_extension import (
     get_tag,
     get_tags,
     TAG_STYLE_OPTIONS,
-    delete_items,
+    delete_items_desktop,
     edit_item,
 )
 from api.models import Item, FileType, FileState, TagConditions
@@ -17,7 +17,6 @@ from PIL import ImageQt
 from PySide6 import QtCore, QtGui, QtWidgets
 import vlc
 from api.utils.overrides import get_view_default_tags
-from collections import deque
 
 
 SORT_METRIC_OPTIONS = ("alphabetical", "random")
@@ -900,7 +899,9 @@ class ViewApplication(QtWidgets.QMainWindow):
         if self.modify_mode:
             item_type = Item.objects.get(id=item_id).filetype
             self.clear_item_id_inplace(
-                item_id, onclear=partial(delete_items, {item_id}), item_type=item_type
+                item_id,
+                onclear=partial(delete_items_desktop, {item_id}),
+                item_type=item_type,
             )
 
     def modify_id(self, item_id):
