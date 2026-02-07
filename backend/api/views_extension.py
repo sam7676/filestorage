@@ -284,7 +284,7 @@ def get_items_and_paths_from_tags(tags, order_by=None):
             if tagCondition == TagConditions.IsNot.value:
                 objects = objects.filter(width__lt=tagList[0])
 
-	elif tagName == "idrange":
+        elif tagName == "idrange":
             # Cannot have multiple id ranges
             if len(tagList) != 1:
                 continue
