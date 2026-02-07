@@ -284,6 +284,20 @@ def get_items_and_paths_from_tags(tags, order_by=None):
             if tagCondition == TagConditions.IsNot.value:
                 objects = objects.filter(width__lt=tagList[0])
 
+	elif tagName == "idrange":
+            # Cannot have multiple id ranges
+            if len(tagList) != 1:
+                continue
+
+            # If using "is", take items where item.id >= provided_id
+            # Reverse for "is not"
+
+            if tagCondition == TagConditions.Is.value:
+                objects = objects.filter(id__gte=tagList[0])
+            if tagCondition == TagConditions.IsNot.value:
+                objects = objects.filter(id__lt=tagList[0])
+
+
         else:
             # Generic tags
             if tagCondition == TagConditions.Is.value:
