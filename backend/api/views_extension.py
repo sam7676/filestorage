@@ -293,12 +293,13 @@ def get_items_and_paths_from_tags(tags, order_by=None):
             # Reverse for "is not"
 
             if tagCondition == TagConditions.Is.value:
-                objects = objects.filter(id__gte=tagList[0])
+                objects = objects.filter(id__gte=str(tagList[0]))
             if tagCondition == TagConditions.IsNot.value:
-                objects = objects.filter(id__lt=tagList[0])
+                objects = objects.filter(id__lt=str(tagList[0]))
 
 
         else:
+            
             # Generic tags
             if tagCondition == TagConditions.Is.value:
                 objects = objects.filter(tags__name=tagName, tags__value__in=tagList)

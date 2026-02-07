@@ -47,7 +47,7 @@ def desktop():
         )
 
         if command == "1":
-            t = True
+            closed_automatically = True
             idx = 0
 
             check_fns = (
@@ -66,16 +66,16 @@ def desktop():
                 start_tag_application,
             ]
 
-            while t and idx < len(fns):
+            while closed_automatically and idx < len(fns):
                 # Work through check functions
                 for i in range(min(idx, len(check_fns))):
                     if check_fns[i]():
-                        fns[i]()
-
-                t, complete = fns[idx]()
-
-                if not (idx == len(fns) - 1 and not complete):
-                    idx += 1
+                        idx = i
+                        break
+                        
+                closed_automatically, completed_all_items = fns[idx]()
+                
+                idx += 1
 
         if command == "1m":
             start_multitag_application()

@@ -16,7 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import vlc
 
 
-VIDEOS_TO_PLAY = 2
+VIDEOS_TO_PLAY = 0
 
 
 class VlcVideoWidget(QtWidgets.QFrame):

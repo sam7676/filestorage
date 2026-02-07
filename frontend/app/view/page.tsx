@@ -318,8 +318,13 @@ export default function View() {
 
   const addTuple = async () => {
     if (newFirst.trim()) {
+        
+      for (const andSplit of newFirst.trim().split(' and ')) {
+          
+        
+        
       var isInFirst = false;
-      const split = newFirst.trim().split(' ');
+      const split = andSplit.trim().split(' ');
 
       // convert to list and take that
       if (split.length == 3 && SPLIT_OPTIONS_MAP.has(split[1].trim())) {
@@ -343,6 +348,8 @@ export default function View() {
         setNewSecond(CONDITIONS_OPTIONS[0]);
         setNewThird('');
       }
+    }
+    
     }
   };
 
@@ -615,6 +622,10 @@ export default function View() {
         <div className="flex justify-center">
           <input
             type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck="false"
             value={newFirst}
             onChange={(e) => setNewFirst(e.target.value)}
             onKeyDown={(e) => {
@@ -646,6 +657,10 @@ export default function View() {
           </select>
           <input
             type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck="false"
             value={newThird}
             onChange={(e) => setNewThird(e.target.value)}
             onKeyDown={(e) => {

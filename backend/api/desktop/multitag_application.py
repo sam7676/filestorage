@@ -184,7 +184,7 @@ class MultiTagApplication(QtWidgets.QMainWindow):
         self.tags_layout.setSpacing(4)
         self.tags_scroll.setWidget(self.tags_scroll_contents)
 
-        right_layout.addWidget(self.tags_scroll, 2)
+        right_layout.addWidget(self.tags_scroll, 1)
 
         layout.addWidget(left_panel, 4)
         layout.addWidget(right_panel, 1)
