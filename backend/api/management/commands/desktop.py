@@ -72,9 +72,9 @@ def desktop():
                     if check_fns[i]():
                         idx = i
                         break
-                        
+
                 closed_automatically, completed_all_items = fns[idx]()
-                
+
                 idx += 1
 
         if command == "1m":

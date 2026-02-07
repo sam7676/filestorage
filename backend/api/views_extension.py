@@ -297,9 +297,7 @@ def get_items_and_paths_from_tags(tags, order_by=None):
             if tagCondition == TagConditions.IsNot.value:
                 objects = objects.filter(id__lt=str(tagList[0]))
 
-
         else:
-            
             # Generic tags
             if tagCondition == TagConditions.Is.value:
                 objects = objects.filter(tags__name=tagName, tags__value__in=tagList)
@@ -999,9 +997,16 @@ class VideoRemover:
         # Leaves dangling items, worst case these get picked up when re-running the desktop application
 
         item = Item.objects.get(id=item_id)
-
-        cls.videos_to_remove.append(item.getpath())
+        path = item.getpath()
         item.delete()
+
+        if not os.path.exists(path):
+            return
+
+        try:
+            os.remove(path)
+        except OSError:
+            cls.videos_to_remove.append(path)
 
     @classmethod
     def process(cls):

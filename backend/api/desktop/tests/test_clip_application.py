@@ -107,3 +107,15 @@ def test_clear_layout_removes_nested_widgets(qtbot, clip_window):
 
     assert layout.count() == 0
     assert child_layout.count() == 0
+
+
+def test_toggle_videos_updates_state_and_button(clip_window):
+    assert clip_window.show_videos is False
+    assert clip_window.videos_to_play == 0
+    assert clip_window.toggle_videos_button.text() == "Show Videos"
+
+    clip_window.toggle_videos()
+
+    assert clip_window.show_videos is True
+    assert clip_window.videos_to_play == 2
+    assert clip_window.toggle_videos_button.text() == "Hide Videos"

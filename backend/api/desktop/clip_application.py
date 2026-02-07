@@ -16,7 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import vlc
 
 
-VIDEOS_TO_PLAY = 0
+SHOW_VIDEOS = False
 
 
 class VlcVideoWidget(QtWidgets.QFrame):
@@ -101,7 +101,8 @@ class ClipApplication(QtWidgets.QMainWindow):
         self._last_nearest_item_id = None
         self._video_widgets = []
         self._screen_geometry = None
-        self.videos_to_play = VIDEOS_TO_PLAY
+        self.show_videos = SHOW_VIDEOS
+        self.videos_to_play = self._get_videos_to_play()
 
         self.setWindowTitle("Clip application")
         screen = QtGui.QGuiApplication.primaryScreen()
@@ -161,6 +162,8 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.keep_right_button = QtWidgets.QPushButton("Right")
         self.keep_none_button = QtWidgets.QPushButton("None")
         self.swap_button = QtWidgets.QPushButton("Swap")
+        self.toggle_videos_button = QtWidgets.QPushButton()
+        self._sync_video_toggle_button()
 
         top_buttons.addStretch(1)
         top_buttons.addWidget(self.keep_left_button)
@@ -170,6 +173,7 @@ class ClipApplication(QtWidgets.QMainWindow):
 
         bottom_buttons.addStretch(1)
         bottom_buttons.addWidget(self.keep_none_button)
+        bottom_buttons.addWidget(self.toggle_videos_button)
         bottom_buttons.addWidget(self.swap_button)
         bottom_buttons.addStretch(1)
 
@@ -184,6 +188,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self.keep_right_button.clicked.connect(self.choose_right)
         self.keep_none_button.clicked.connect(self.choose_none)
         self.swap_button.clicked.connect(self.change_swap)
+        self.toggle_videos_button.clicked.connect(self.toggle_videos)
 
         QtGui.QShortcut(
             QtGui.QKeySequence("Return"), self, activated=self.choose_middle
@@ -201,6 +206,19 @@ class ClipApplication(QtWidgets.QMainWindow):
             }
             """
         )
+
+    def _get_videos_to_play(self):
+        return 2 if self.show_videos else 0
+
+    def _sync_video_toggle_button(self):
+        if self.show_videos:
+            label = "Hide Videos"
+            color = "#E6E6E6"
+        else:
+            label = "Show Videos"
+            color = "#9FB7D9"
+        self.toggle_videos_button.setText(label)
+        self.toggle_videos_button.setStyleSheet(f"color: {color};")
 
     def _update_media_constraints(self):
         rect = self.items_layout.geometry()
@@ -330,7 +348,7 @@ class ClipApplication(QtWidgets.QMainWindow):
         self._clear_video_players()
         self._clear_layout(self.left_layout)
         self._clear_layout(self.right_layout)
-        self.videos_to_play = VIDEOS_TO_PLAY
+        self.videos_to_play = self._get_videos_to_play()
 
         self.left_item_id = self.item_id if not self.swap else self.nearest_item_id
         self.right_item_id = self.nearest_item_id if not self.swap else self.item_id
@@ -365,6 +383,11 @@ class ClipApplication(QtWidgets.QMainWindow):
 
     def change_swap(self):
         self.swap = not self.swap
+        self.load_items()
+
+    def toggle_videos(self):
+        self.show_videos = not self.show_videos
+        self._sync_video_toggle_button()
         self.load_items()
 
     def closeEvent(self, event):

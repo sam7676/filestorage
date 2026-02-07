@@ -318,38 +318,33 @@ export default function View() {
 
   const addTuple = async () => {
     if (newFirst.trim()) {
-        
       for (const andSplit of newFirst.trim().split(' and ')) {
-          
-        
-        
-      var isInFirst = false;
-      const split = andSplit.trim().split(' ');
+        var isInFirst = false;
+        const split = andSplit.trim().split(' ');
 
-      // convert to list and take that
-      if (split.length == 3 && SPLIT_OPTIONS_MAP.has(split[1].trim())) {
-        const first = split[0].trim();
-        const second = SPLIT_OPTIONS_MAP.get(split[1].trim()) || 'is';
-        const third = split[2].trim();
+        // convert to list and take that
+        if (split.length == 3 && SPLIT_OPTIONS_MAP.has(split[1].trim())) {
+          const first = split[0].trim();
+          const second = SPLIT_OPTIONS_MAP.get(split[1].trim()) || 'is';
+          const third = split[2].trim();
 
-        const newTuple: Tuple = [first.trim(), second, third.trim()];
-        setTuples((prev) => [...prev, newTuple]);
-        setNewFirst('');
-        setNewSecond(CONDITIONS_OPTIONS[0]);
-        setNewThird('');
+          const newTuple: Tuple = [first.trim(), second, third.trim()];
+          setTuples((prev) => [...prev, newTuple]);
+          setNewFirst('');
+          setNewSecond(CONDITIONS_OPTIONS[0]);
+          setNewThird('');
 
-        isInFirst = true;
+          isInFirst = true;
+        }
+
+        if (!isInFirst && newThird.trim()) {
+          const newTuple: Tuple = [newFirst.trim(), newSecond, newThird.trim()];
+          setTuples((prev) => [...prev, newTuple]);
+          setNewFirst('');
+          setNewSecond(CONDITIONS_OPTIONS[0]);
+          setNewThird('');
+        }
       }
-
-      if (!isInFirst && newThird.trim()) {
-        const newTuple: Tuple = [newFirst.trim(), newSecond, newThird.trim()];
-        setTuples((prev) => [...prev, newTuple]);
-        setNewFirst('');
-        setNewSecond(CONDITIONS_OPTIONS[0]);
-        setNewThird('');
-      }
-    }
-    
     }
   };
 
