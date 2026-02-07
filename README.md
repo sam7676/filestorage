@@ -65,7 +65,6 @@ uv run manage.py shell_plus
 ```
 
 Web frontend   
-Runs on port 3000 by default, change with `-- -p [portNumber]`.
 ```
 cd frontend
 npm run dev
